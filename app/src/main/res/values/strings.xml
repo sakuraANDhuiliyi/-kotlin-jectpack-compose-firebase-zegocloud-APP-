@@ -4,6 +4,7 @@
     <string name="name2">列表</string>
     <string name="name3">回退</string>
     <string name="name4">搜索</string>
-    <string name="name5">地图</string>
+    <string name="name5">我的</string>
     <string name="name6">🐟AI</string>
+    <string name="name7">聊天</string>
 </resources>

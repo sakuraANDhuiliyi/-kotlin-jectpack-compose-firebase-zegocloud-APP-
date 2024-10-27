@@ -1,4 +1,4 @@
-package com.example.app1
+package com.example.app1.alarm
 
 import android.annotation.SuppressLint
 import android.app.AlarmManager
@@ -10,7 +10,7 @@ import java.time.ZoneId
 
 class AndroidAlarmScheduler(
     private val context:Context
-):AlarmScheduler {
+): AlarmScheduler {
     private  val alarmManager = context.getSystemService(AlarmManager::class.java)
     @SuppressLint("ScheduleExactAlarm")
     override fun schedule(item: AlarmItem) {

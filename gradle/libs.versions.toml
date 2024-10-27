@@ -23,6 +23,7 @@ lifecycleLivedataKtx = "2.8.6"
 runtimeLivedata = "1.7.2"
 runtimeSavedInstanceState = "1.0.0-alpha11"
 composeMaterial3 = "1.0.0-alpha25"
+firebaseAuth = "21.1.0"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -55,6 +56,7 @@ location = { module = "com.amap.api:location", version.ref = "location" }
 map2d = { module = "com.amap.api:map2d", version.ref = "map2d" }
 androidx-runtime-saved-instance-state = { group = "androidx.compose.runtime", name = "runtime-saved-instance-state", version.ref = "runtimeSavedInstanceState" }
 androidx-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "composeMaterial3" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     kotlin("kapt")
+    id("com.google.gms.google-services")
 
 }
 
@@ -41,6 +42,7 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
+        dataBinding =true
         compose = true
     }
     composeOptions {
@@ -55,12 +57,29 @@ android {
 
 dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(files("libs/SparkChain.aar"))
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.code.gson:gson:2.10.1")
-    
+    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.firebaseui:firebase-ui-auth:7.2.0")
+    implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1")
+    implementation("androidx.media3:media3-common:1.4.1")
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:chromecast-sender:0.28")
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("org.jsoup:jsoup:1.18.1")
+    implementation("com.github.ZEGOCLOUD:zego_inapp_chat_uikit_android:+"){
+        exclude(group = "com.android.support", module = "support-compat")
+    }
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.runtime.saved.instance.state)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.firebase.auth)
     val room_version = "2.6.1"
     implementation("androidx.biometric:biometric:1.1.0")
     implementation(libs.androidx.room.runtime)
@@ -74,7 +93,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
+    implementation(platform("androidx.compose:compose-bom:2024.04.01"))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)

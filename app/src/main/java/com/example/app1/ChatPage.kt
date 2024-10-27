@@ -1,5 +1,6 @@
 package com.example.app1
 
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+
 
 
 @Composable
@@ -107,7 +109,6 @@ fun ChatPage(modifier: Modifier = Modifier,viewModel: ChatViewModel) {
         }
     }
 }
-
 
 @Composable
 fun MessageList(modifier: Modifier = Modifier,messageList : List<MessageModel>) {

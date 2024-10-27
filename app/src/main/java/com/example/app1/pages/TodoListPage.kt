@@ -1,11 +1,10 @@
-package com.example.app1
+package com.example.app1.pages
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,6 +36,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.app1.R
+import com.example.app1.alarm.AlarmItem
+import com.example.app1.alarm.AndroidAlarmScheduler
+import com.example.app1.checkAndRequestExactAlarmPermission
 import com.example.app1.roomDb.Todo
 import com.example.app1.roomDb.viewModel.TodoViewModel
 import java.text.SimpleDateFormat
@@ -106,7 +109,7 @@ fun TodoItem(item : Todo, onDelete : ()-> Unit) {
     var secondsText by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     val scheduler = AndroidAlarmScheduler(LocalContext.current)
-    var alarmItem :AlarmItem ?=null
+    var alarmItem : AlarmItem?=null
     checkAndRequestExactAlarmPermission(LocalContext.current)
     Row(
         modifier = Modifier

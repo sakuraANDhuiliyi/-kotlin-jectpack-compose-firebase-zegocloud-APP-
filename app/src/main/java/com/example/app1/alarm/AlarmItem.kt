@@ -1,7 +1,6 @@
-package com.example.app1
+package com.example.app1.alarm
 
 import java.time.LocalDateTime
-import java.time.LocalTime
 
 data class AlarmItem(
     val time: LocalDateTime,
