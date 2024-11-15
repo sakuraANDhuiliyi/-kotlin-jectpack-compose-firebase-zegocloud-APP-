@@ -1,5 +1,6 @@
 package com.example.app1
 
+import android.annotation.SuppressLint
 import com.example.app1.roomDb.viewModel.UserViewModel
 import android.app.Activity
 import android.app.AlarmManager
@@ -16,7 +17,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -195,6 +196,7 @@ import com.example.app1.videoPlayer.YisiHougongVideoList
 import com.example.app1.videoPlayer.mainVideoList
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import com.iflytek.sparkchain.core.LLM
@@ -259,40 +261,9 @@ class MainActivity : AppCompatActivity(){
         }
     )
     private val userViewModel by viewModels<UserViewModel>()
-    private var mapView: MapView? = null
-    //初始化讯飞星火大模型
-    private var responseState = mutableStateOf("等待回答...")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val config = SparkChainConfig.builder()
-            .appID("8c6b7b06")
-            .apiKey("1e83b4dcb978bbb471aa62e6533b67ea")
-            .apiSecret("YjMxY2NhYjRkNmNmOWRjYTU3NTk0M2E0")
-        val ret = SparkChain.getInst().init(applicationContext, config)
-        val chatLLMConfig = LLMConfig.builder()
-            .domain("generalv3.5")
-            .url("wss://spark-api.xf-yun.com/v3.5/chat")
-            .maxToken(2048)
-            .temperature(0.7f)
-            .topK(4)
         val todoViewModel = ViewModelProvider(this)[TodoViewModel::class.java]
-        val memory = Memory.windowMemory(5)
-        val chatLLM = LLMFactory.textGeneration(chatLLMConfig, memory)
-        val llmCallbacks = object : LLMCallbacks {
-            override fun onLLMResult(llmResult: LLMResult, usrContext: Any?) {
-                responseState.value += llmResult.content
-            }
-
-            override fun onLLMEvent(event: LLMEvent, usrContext: Any?) {
-                Log.d("LLMEvent", "Event ID: ${event.eventID}, Message: ${event.eventMsg}")
-            }
-
-            override fun onLLMError(error: LLMError, usrContext: Any?) {
-                Log.e("LLMError", "Error Code: ${error.errCode}, Message: ${error.errMsg}")
-            }
-        }
-        chatLLM.registerLLMCallbacks(llmCallbacks)
-        enableEdgeToEdge()
         setContent {
             App1Theme {
                 val chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
@@ -319,7 +290,8 @@ class MainActivity : AppCompatActivity(){
                                 director = document.getString("director") ?: "",
                                 videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
                                 dianzanCounts = document.getLong("dianzanCounts")?.toInt() ?: 0,
-                                collectCounts = document.getLong("collectCounts")?.toInt() ?: 0
+                                collectCounts = document.getLong("collectCounts")?.toInt() ?: 0,
+                                comments = document.get("comments") as? List<Comment> ?: emptyList()
                             )
                         }
                         videoList = videos // 更新视频列表
@@ -424,7 +396,7 @@ class MainActivity : AppCompatActivity(){
                             composable("register"){ RegisterDemo(navController=navController,userViewModel) }
                             composable("image") { PictureDemo(navController, R.drawable.first) }
                             composable("AiBot") {
-                                ChatApp(chatLLM, responseState)
+
                             }
                             composable("web") { WebBrowser(modifier = Modifier) }
                             composable("map") { MapScreen() }
@@ -443,10 +415,7 @@ class MainActivity : AppCompatActivity(){
                 }
             }
         }
-
     }
-
-
     data class TODoItem(
     var title:String,
     var isCompleted: Boolean = false
@@ -478,7 +447,8 @@ class MainActivity : AppCompatActivity(){
         val director:String="",
         val videoUrl:List<String> = emptyList(),
         val dianzanCounts:Int=0,
-        val collectCounts:Int=0
+        val collectCounts:Int=0,
+        val comments: List<Comment> = emptyList()
     )//添加计数：点赞数和收藏数
     data class Danmu(
     var time: Long = 0L,        // 初始化默认值，避免空指针异常
@@ -517,110 +487,20 @@ class MainActivity : AppCompatActivity(){
     constructor() : this("", "", "", "", "",null,null,null)
 }
     data class Message1(val sender: String, val content: String)//Ai 聊天界面
-    data class Comment(val username: String, val content: String, val avatar: String)//评论
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun ChatApp(chatLLM: LLM, responseState: MutableState<String>) {
-    var question by remember { mutableStateOf("") }
-    val conversationList = remember { mutableStateListOf<Message1>() }
-    val scrollState = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
-
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("讯飞星火大模型") })
-        },
-        bottomBar = {
-            // 输入栏在底部
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = question,
-                    onValueChange = { question = it },
-                    label = { Text("输入你的问题") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                    singleLine = true
-                )
-                Button(
-                    onClick = {
-                        if (question.isNotEmpty()) {
-                            // 添加新问题气泡
-                            conversationList.add(Message1("你", question))
-                            // 清空AI的响应状态
-                            responseState.value = ""
-                            // 发送问题给模型
-                            val userQuestion = question
-                            chatLLM.arun(userQuestion)
-                            question = "" // 清空输入框
-                            focusManager.clearFocus()
-                        }
-                    }
-                ) {
-                    Text("发送")
-                }
-            }
-        }
-    ) { innerPadding ->
-        // 显示对话记录
-        LazyColumn(
-            state = scrollState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            reverseLayout = false // 最新对话显示在底部
-        ) {
-            // 遍历每个消息
-            items(conversationList.size) { index ->
-                ChatBubble(message = conversationList[index])
-            }
-        }
-
-        // 当有新的 AI 回复时，更新当前对话的回复气泡内容
-        LaunchedEffect(responseState.value) {
-            if (responseState.value.isNotEmpty()) {
-                val lastIndex = conversationList.lastIndex
-                if (lastIndex >= 0 && conversationList[lastIndex].sender == "AI") {
-                    // 更新 AI 的消息内容
-                    conversationList[lastIndex] = conversationList[lastIndex].copy(content = responseState.value)
-                } else {
-                    // 添加新的 AI 消息
-                    conversationList.add(Message1("AI", responseState.value))
-                }
-                // 自动滚动到最新消息
-                scrollState.animateScrollToItem(conversationList.size - 1)
-            }
-        }
+data class Comment(
+    val username: String = "",
+    val content: String = "",
+    val avatar: String = ""
+) {
+    fun toMap(): Map<String, Any> {
+        return mapOf(
+            "username" to username,
+            "content" to content,
+            "avatar" to avatar
+        )
     }
-}
+}//评论
 
-    @Composable
-    fun ChatBubble(message: Message1) {
-    val isUser = message.sender == "你"
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start // 用户的消息靠右，AI 的消息靠左
-    ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    if (isUser) Color(0xFFBBDEFB) else Color(0xFFD1E7DD),
-                    RoundedCornerShape(16.dp)
-                )
-                .padding(12.dp)
-        ) {
-            Text(text = "${message.sender}: ${message.content}", color = Color.Black)
-        }
-    }
-}
     @Composable
     fun VideoScreen(navController: NavHostController, videoList: List<VideoDescription>) {
     LazyRow(
@@ -796,7 +676,7 @@ class MainActivity : AppCompatActivity(){
         }
     fun updateFavoriteVideos(videoDocRef: DocumentReference) {
             val userDocRef = FirebaseFirestore.getInstance().collection("users").document(
-               "Sakura"
+               "sakura"
             )
         userDocRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
@@ -836,7 +716,7 @@ class MainActivity : AppCompatActivity(){
         }
     fun updateCollectVideos(videoDocRef: DocumentReference) {
             val userDocRef = FirebaseFirestore.getInstance().collection("users").document(
-                "Sakura"
+                "sakura"
             )
         userDocRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
@@ -876,7 +756,7 @@ class MainActivity : AppCompatActivity(){
         }
     fun updateChaseVideos(videoDocRef: DocumentReference) {
             val userDocRef = FirebaseFirestore.getInstance().collection("users").document(
-                "Sakura"
+                "sakura"
             )
         userDocRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
@@ -1091,13 +971,35 @@ class MainActivity : AppCompatActivity(){
 }
 
 //评论区
-    @Composable
-    fun CommentSection() {
-    // 评论列表
-    val comments = remember { mutableStateListOf<Comment>() }
+@Composable
+fun CommentSection(videoItem: VideoDescription) {
+    val db = FirebaseFirestore.getInstance()
+    var comments by remember { mutableStateOf(mutableListOf<Comment>()) }
     var commentText by remember { mutableStateOf(TextFieldValue()) }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val userDocRef = db.collection(videoItem.type).document("${videoItem.name}_${videoItem.year}")
+
+    // 获取 Firestore 中的评论数据
+    LaunchedEffect(videoItem) {
+        userDocRef.get().addOnSuccessListener { document ->
+            if (document.exists()) {
+                val commentsList = document.get("comments") as? List<Map<String, Any>>
+                comments = commentsList?.map { commentMap ->
+                    Comment(
+                        username = commentMap["username"] as? String ?: "匿名",
+                        content = commentMap["content"] as? String ?: "",
+                        avatar = commentMap["avatar"] as? String ?: ""
+                    )
+                }?.toMutableList() ?: mutableListOf()
+            } else {
+                Log.w("Firebase", "User document does not exist")
+            }
+        }.addOnFailureListener { e ->
+            Log.w("Firebase", "Error fetching user document", e)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
             text = "评论区",
@@ -1144,14 +1046,20 @@ class MainActivity : AppCompatActivity(){
             )
 
             IconButton(onClick = {
-                // 发送评论
                 if (commentText.text.isNotBlank()) {
+                    val newComment = Comment(username = "用户", content = commentText.text, avatar = "")
                     coroutineScope.launch {
-                        comments.add(Comment(username = "用户", content = commentText.text, avatar =""))
+                        comments.add(newComment)
                         commentText = TextFieldValue() // 清空输入框
+
+                        // 更新 Firestore 中的评论
+                        userDocRef.update("comments", FieldValue.arrayUnion(newComment.toMap()))
+                            .addOnFailureListener { e ->
+                                Log.w("Firebase", "Error adding comment", e)
+                            }
                     }
+                    focusManager.clearFocus()
                 }
-                focusManager.clearFocus()
             }) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "发送评论", tint = Color.Blue)
             }
@@ -1159,8 +1067,8 @@ class MainActivity : AppCompatActivity(){
     }
 }
 
-@Composable
-fun CommentItem(comment: Comment) {
+    @Composable
+    fun CommentItem(comment: Comment) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 8.dp)) {
@@ -1310,7 +1218,7 @@ fun CommentItem(comment: Comment) {
                             }
                         }
                         )
-                        1 -> CommentSection()
+                        1 -> CommentSection(videoItem)
                     }
                 }
             }
@@ -2126,7 +2034,7 @@ fun CommentItem(comment: Comment) {
     val client = OkHttpClient()
     val descriptions = mutableListOf<VideoDescription>()
 
-    for (num in 12001..14000) {//https://suoniapi.com/api.php/provide/vod/from/snm3u8/at/xml/?ac=videolist&ids=
+    for (num in 1..10) {//https://suoniapi.com/api.php/provide/vod/from/snm3u8/at/xml/?ac=videolist&ids=
         val url = "https://suoniapi.com/api.php/provide/vod/from/snm3u8/at/xml/?ac=videolist&ids=$num"//
         val request = Request.Builder()
             .url(url)
@@ -2162,6 +2070,7 @@ fun CommentItem(comment: Comment) {
     val videoUrls = mutableListOf<String>()
     var dianzanCounts=0
     var collectCounts =0
+    var comments = mutableStateListOf<Comment>()
     val db = Firebase.firestore
 
     try {
@@ -2227,7 +2136,8 @@ fun CommentItem(comment: Comment) {
                             "director" to director,
                             "videoUrl" to videoUrls,
                             "dianzanCounts" to 0,
-                            "collectCounts" to 0
+                            "collectCounts" to 0,
+                            "comments" to comments
                         )
 
                         val safeVideoName = "${name.replace("[#\\[\\]]".toRegex(), "")}_$year" // 例如："电影名_2024"
@@ -2240,7 +2150,7 @@ fun CommentItem(comment: Comment) {
                             .addOnFailureListener { e ->
                                 Log.w("DocSnippets", "Error adding document", e)
                             }
-                        return VideoDescription(name, type, pic, lang, area, year, note, actor, director, videoUrls,dianzanCounts, collectCounts )
+                        return VideoDescription(name, type, pic, lang, area, year, note, actor, director, videoUrls,dianzanCounts, collectCounts,comments )
                     }
                 }
             }
@@ -3204,6 +3114,7 @@ fun CommentItem(comment: Comment) {
     }
 
     //个人简介页
+    @SuppressLint("SuspiciousIndentation")
     @Composable
     fun PersonalProfilePage(navController: NavHostController) {
         val context = LocalContext.current
@@ -3462,7 +3373,7 @@ fun CommentItem(comment: Comment) {
     fun getFavoriteVideos(context: Context, onResult: (List<VideoDescription>) -> Unit) {
         val db = FirebaseFirestore.getInstance()
         // 获取用户文档引用
-        val userDocRef = db.collection("users").document("Sakura")
+        val userDocRef = db.collection("users").document("sakura")
 
         // 获取用户文档
         userDocRef.get().addOnSuccessListener { document ->
@@ -3509,7 +3420,7 @@ fun CommentItem(comment: Comment) {
     fun getCollectVideos(context: Context, onResult: (List<VideoDescription>) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     // 获取用户文档引用
-    val userDocRef = db.collection("users").document("Sakura")
+    val userDocRef = db.collection("users").document("sakura")
 
     // 获取用户文档
     userDocRef.get().addOnSuccessListener { document ->
@@ -3555,7 +3466,7 @@ fun CommentItem(comment: Comment) {
     fun getChaseVideos(context: Context, onResult: (List<VideoDescription>) -> Unit) {
     val db = FirebaseFirestore.getInstance()
     // 获取用户文档引用
-    val userDocRef = db.collection("users").document("Sakura")
+    val userDocRef = db.collection("users").document("sakura")
 
     // 获取用户文档
     userDocRef.get().addOnSuccessListener { document ->
