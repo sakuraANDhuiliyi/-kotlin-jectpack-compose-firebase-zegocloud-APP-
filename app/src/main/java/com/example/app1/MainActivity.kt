@@ -971,8 +971,8 @@ data class Comment(
 }
 
 //评论区
-@Composable
-fun CommentSection(videoItem: VideoDescription) {
+    @Composable
+    fun CommentSection(videoItem: VideoDescription) {
     val db = FirebaseFirestore.getInstance()
     var comments by remember { mutableStateOf(mutableListOf<Comment>()) }
     var commentText by remember { mutableStateOf(TextFieldValue()) }
