@@ -17,7 +17,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -199,16 +198,6 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import com.iflytek.sparkchain.core.LLM
-import com.iflytek.sparkchain.core.LLMCallbacks
-import com.iflytek.sparkchain.core.LLMConfig
-import com.iflytek.sparkchain.core.LLMError
-import com.iflytek.sparkchain.core.LLMEvent
-import com.iflytek.sparkchain.core.LLMFactory
-import com.iflytek.sparkchain.core.LLMResult
-import com.iflytek.sparkchain.core.Memory
-import com.iflytek.sparkchain.core.SparkChain
-import com.iflytek.sparkchain.core.SparkChainConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -506,7 +495,6 @@ data class Comment(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp)
             .height(200.dp)
     ) {
         items(videoList.size) { index ->
@@ -1333,11 +1321,26 @@ data class Comment(
     fun MainVideoScreen(navController: NavHostController) {
     val db = FirebaseFirestore.getInstance()
     var videoList by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
-
+    var videoList1 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+    var videoList2 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+    var videoList3 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+    var videoList4 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
     // 异步加载视频数据
     LaunchedEffect(Unit) {
         try {
             val documents = db.collection("港剧")
+                .limit(5)
+                .get()
+                .await()
+            val documents1 = db.collection("欧美剧")
+                .limit(5)
+                .get()
+                .await()
+            val documents2 = db.collection("恐怖片")
+                .limit(5)
+                .get()
+                .await()
+            val documents3 = db.collection("纪录片")
                 .limit(5)
                 .get()
                 .await()
@@ -1357,25 +1360,146 @@ data class Comment(
                     collectCounts = 0
                 )
             }
+            val videos1 = documents1.map { document ->
+                VideoDescription(
+                    name = document.getString("name") ?: "",
+                    type = document.getString("type") ?: "",
+                    pic = document.getString("pic") ?: "",
+                    lang = document.getString("lang") ?: "",
+                    area = document.getString("area") ?: "",
+                    year = document.getString("year") ?: "",
+                    note = document.getString("note") ?: "",
+                    actor = document.getString("actor") ?: "",
+                    director = document.getString("director") ?: "",
+                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
+                    dianzanCounts = 0,
+                    collectCounts = 0
+                )
+            }
+            val videos2 = documents2.map { document ->
+                VideoDescription(
+                    name = document.getString("name") ?: "",
+                    type = document.getString("type") ?: "",
+                    pic = document.getString("pic") ?: "",
+                    lang = document.getString("lang") ?: "",
+                    area = document.getString("area") ?: "",
+                    year = document.getString("year") ?: "",
+                    note = document.getString("note") ?: "",
+                    actor = document.getString("actor") ?: "",
+                    director = document.getString("director") ?: "",
+                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
+                    dianzanCounts = 0,
+                    collectCounts = 0
+                )
+            }
+            val videos3 = documents3.map { document ->
+                VideoDescription(
+                    name = document.getString("name") ?: "",
+                    type = document.getString("type") ?: "",
+                    pic = document.getString("pic") ?: "",
+                    lang = document.getString("lang") ?: "",
+                    area = document.getString("area") ?: "",
+                    year = document.getString("year") ?: "",
+                    note = document.getString("note") ?: "",
+                    actor = document.getString("actor") ?: "",
+                    director = document.getString("director") ?: "",
+                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
+                    dianzanCounts = 0,
+                    collectCounts = 0
+                )
+            }
             videoList = videos // 更新视频列表
+            videoList1 = videos1
+            videoList2 = videos2
+            videoList3 = videos3
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-
     // 显示视频列表
-    Column(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 10.dp)
-        ) {
-            items(5) { index ->
-                Text("Section ${index + 1}")
-                VideoScreen(navController, videoList)
-            }
-        }
-    }
+   Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+           Row(
+               modifier = Modifier.fillMaxWidth(),
+               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
+               verticalAlignment = Alignment.CenterVertically // 垂直居中
+           ) {
+               Text(
+                   text = "港剧",
+                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
+                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
+               )
+
+               TextButton(onClick = {}) {
+                   Text("更多")
+               }
+           }
+
+           // 这里是视频内容展示部分
+           VideoScreen(navController, videoList)
+       }
+       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+           Row(
+               modifier = Modifier.fillMaxWidth(),
+               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
+               verticalAlignment = Alignment.CenterVertically // 垂直居中
+           ) {
+               Text(
+                   text = "欧美剧",
+                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
+                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
+               )
+
+               TextButton(onClick = {}) {
+                   Text("更多")
+               }
+           }
+
+           // 这里是视频内容展示部分
+           VideoScreen(navController, videoList1)
+       }
+       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+           Row(
+               modifier = Modifier.fillMaxWidth(),
+               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
+               verticalAlignment = Alignment.CenterVertically // 垂直居中
+           ) {
+               Text(
+                   text = "恐怖片",
+                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
+                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
+               )
+
+               TextButton(onClick = {}) {
+                   Text("更多")
+               }
+           }
+
+           // 这里是视频内容展示部分
+           VideoScreen(navController, videoList2)
+       }
+       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+           Row(
+               modifier = Modifier.fillMaxWidth(),
+               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
+               verticalAlignment = Alignment.CenterVertically // 垂直居中
+           ) {
+               Text(
+                   text = "纪录片",
+                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
+                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
+               )
+
+               TextButton(onClick = {}) {
+                   Text("更多")
+               }
+           }
+
+           // 这里是视频内容展示部分
+           VideoScreen(navController, videoList3)
+       }
+   }
+
 }
     @Composable
     fun SearchScreen(navController: NavHostController) {
@@ -1648,8 +1772,6 @@ data class Comment(
             }
         }
     }
-
-
     //小说卡面
     @Composable
     fun NovelCard(xiaoShuo: XiaoShuo,navController: NavHostController) {
@@ -1705,7 +1827,6 @@ data class Comment(
         }
     }
 }
-
 
     // 提取当前的页码（从 URL 中提取出数字，如 "index_3.html" 提取出 3）
     fun extractCurrentPageNumber(link: String): Int {
@@ -2034,7 +2155,7 @@ data class Comment(
     val client = OkHttpClient()
     val descriptions = mutableListOf<VideoDescription>()
 
-    for (num in 1..10) {//https://suoniapi.com/api.php/provide/vod/from/snm3u8/at/xml/?ac=videolist&ids=
+    for (num in 3001..4000) {//https://suoniapi.com/api.php/provide/vod/from/snm3u8/at/xml/?ac=videolist&ids=
         val url = "https://suoniapi.com/api.php/provide/vod/from/snm3u8/at/xml/?ac=videolist&ids=$num"//
         val request = Request.Builder()
             .url(url)
