@@ -385,7 +385,7 @@ class MainActivity : AppCompatActivity(){
                             composable("register"){ RegisterDemo(navController=navController,userViewModel) }
                             composable("image") { PictureDemo(navController, R.drawable.first) }
                             composable("AiBot") {
-
+                                    ChatPage(Modifier,chatViewModel)
                             }
                             composable("web") { WebBrowser(modifier = Modifier) }
                             composable("map") { MapScreen() }
