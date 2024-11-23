@@ -46,14 +46,14 @@ import androidx.compose.ui.window.Dialog
 
 
 
+
+@RequiresApi(35)
 @Composable
 fun ChatPage(modifier: Modifier = Modifier,viewModel: ChatViewModel) {
     Box( modifier = Modifier.fillMaxSize()) {
-        var showDialog by remember { mutableStateOf(false) }
         Column(
             modifier = modifier
         ) {
-            AppHeader()
             MessageList(
                 modifier = Modifier.weight(1f),
                 messageList = viewModel.messageList
@@ -61,49 +61,6 @@ fun ChatPage(modifier: Modifier = Modifier,viewModel: ChatViewModel) {
             MessageInput(
                 onMessageSend = {
                     viewModel.sendMessage(it)
-                }
-            )
-        }
-        SmallFloatingActionButton(
-            onClick = {
-                showDialog = true
-            },
-            contentColor = MaterialTheme.colorScheme.secondary,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 10.dp)
-        ) {
-            Icon(Icons.Default.Favorite, contentDescription = null)
-        }
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = {
-
-                },
-
-                text = {
-                    Text(text = "你是大傻春吗")
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showDialog = false
-
-                        }
-                    ) {
-                        Text("我是")
-                    }
-                },
-                dismissButton = {
-
-                    Button(
-                        onClick = {
-                            showDialog = false
-                        }
-                    ) {
-                        Text("我是")
-                    }
                 }
             )
         }
@@ -215,20 +172,4 @@ fun MessageInput(onMessageSend : (String)-> Unit) {
 
     }
 
-}
-
-@Composable
-fun AppHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.secondary)
-    ) {
-        Text(
-            modifier = Modifier.padding(16.dp),
-            text = "yuyu 智慧大脑",
-            color = Color.White,
-            fontSize = 22.sp
-        )
-    }
 }

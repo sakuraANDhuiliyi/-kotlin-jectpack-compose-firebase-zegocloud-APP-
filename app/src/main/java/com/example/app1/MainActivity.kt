@@ -7,6 +7,7 @@ import android.app.AlarmManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import android.net.Uri
@@ -14,18 +15,21 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
@@ -69,9 +73,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
@@ -82,7 +90,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbUp
@@ -93,7 +100,6 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.twotone.Star
 import androidx.compose.material3.AlertDialog
@@ -130,7 +136,6 @@ import com.example.app1.ui.theme.App1Theme
 import kotlinx.coroutines.delay
 import androidx.compose.material3.*
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -157,6 +162,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -174,6 +180,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.amap.api.maps2d.CameraUpdateFactory
 import com.amap.api.maps2d.MapView
 import com.amap.api.maps2d.model.LatLng
@@ -190,11 +198,13 @@ import com.example.app1.videoPlayer.JhVideoList
 import com.example.app1.videoPlayer.Re0VideoList
 import com.example.app1.videoPlayer.StreamerPlayer
 import com.example.app1.videoPlayer.VideoPlayViewModel
+import com.example.app1.videoPlayer.VideoPlayer
 import com.example.app1.videoPlayer.VideoPlayerViewModel
 import com.example.app1.videoPlayer.YisiHougongVideoList
 import com.example.app1.videoPlayer.mainVideoList
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
@@ -250,6 +260,7 @@ class MainActivity : AppCompatActivity(){
         }
     )
     private val userViewModel by viewModels<UserViewModel>()
+    @RequiresApi(35)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val todoViewModel = ViewModelProvider(this)[TodoViewModel::class.java]
@@ -288,14 +299,32 @@ class MainActivity : AppCompatActivity(){
                         e.printStackTrace()
                     }
                 }
-                Scaffold(modifier = Modifier.fillMaxSize(),
-                    bottomBar = { if (currentBackStackEntry.value?.destination?.route != "splash"&&
-                        currentBackStackEntry.value?.destination?.route != "login"&&
-                        currentBackStackEntry.value?.destination?.route != "register"&&
-                        currentBackStackEntry.value?.destination?.route != "selectLogin"&&
-                        currentBackStackEntry.value?.destination?.route != "biometricAuth") {
-                        ButtonNavigtion(navController)
-                    } },
+                val hiddenBottomBarRoutes = listOf(
+                    "splash",
+                    "login",
+                    "register",
+                    "selectLogin",
+                    "fullScreenVideo",
+                    "videoPlayScreen",
+                    "biometricAuth"
+                )
+                // 获取当前的导航栈条目
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+
+                // 判断是否应该显示底部导航栏
+                val showBottomBar = shouldShowBottomBar(currentRoute, hiddenBottomBarRoutes)
+
+                // 日志输出，便于调试
+                Log.d("CurrentRoute", "Current route: $currentRoute, showBottomBar: $showBottomBar")
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        if (showBottomBar) {
+                            ButtonNavigtion(navController)
+                        }
+                    }
                 ) {
                     innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
@@ -314,6 +343,15 @@ class MainActivity : AppCompatActivity(){
                                 if (videoItem != null) {
                                     VideoDescription(videoItem = videoItem, navController = navController)
                                 }
+                            }
+                            composable(
+                                route = "fullScreenVideo/{videoUrl}",
+                                arguments = listOf(navArgument("videoUrl") {
+                                    type = NavType.StringType
+                                })
+                            ) { backStackEntry ->
+                                val videoUrl = backStackEntry.arguments?.getString("videoUrl") ?: ""
+                                FullScreenVideoPlayerScreen(videoUrl,navController)
                             }
                             composable("XiaoShuo"){ WebContentScreen(navController) }
                             composable("readChapter/{link}") { backStackEntry ->
@@ -339,13 +377,18 @@ class MainActivity : AppCompatActivity(){
                             }
                             composable("videoSearch"){ SearchScreen(navController) }
                             composable("mainVideoScreen"){ MainVideoScreen(navController) }
+                            composable(route = "moreVideos/{category}",arguments = listOf(navArgument("category") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val category = backStackEntry.arguments?.getString("category") ?: ""
+                                MoreVideosScreen(navController, category)
+                            }
                             composable("videoPlayScreen/{videoName}"){
                                     backStackEntry ->
                                 val videoName = backStackEntry.arguments?.getString("videoName")
                                 // 使用名称查找视频详情
                                 val videoItem = videoList.find { it.name == videoName }
                                 if (videoItem != null) {
-                                    VideoPlayScreen(videoItem)
+                                    VideoPlayScreen(videoItem,navController)
                                 }
                             }//同理
                             composable("demo"){ VideoUrlListScreen() }
@@ -405,6 +448,17 @@ class MainActivity : AppCompatActivity(){
             }
         }
     }
+fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Boolean {
+    if (currentRoute == null) return true
+    return !hiddenRoutes.any { hiddenRoute ->
+        if (hiddenRoute.contains("{")) {
+            currentRoute.startsWith(hiddenRoute.substringBefore("{"))
+        } else {
+            // 对于不带参数的路由，检查是否完全匹配或以路由前缀开头（处理带路径的路由）
+            currentRoute == hiddenRoute || currentRoute.startsWith("$hiddenRoute/")
+        }
+    }
+}
     data class TODoItem(
     var title:String,
     var isCompleted: Boolean = false
@@ -1105,7 +1159,6 @@ data class Comment(
                     })
                 IconButton(onClick = {
                     onPlayClosed(false)
-
                     viewModel.releasePlayer()
                 }, modifier = Modifier.align(Alignment.TopEnd)) {
                     Icon(imageVector = Icons.Default.Close,contentDescription = null
@@ -1116,168 +1169,300 @@ data class Comment(
     }
 
     //视频播放页
+    @RequiresApi(35)
+    @SuppressLint("UseOfNonLambdaOffsetOverload")
     @Composable
-    fun VideoPlayScreen(videoItem: VideoDescription) {
-        val tabItems = listOf(
-            Tab1Item("详情"),
-            Tab1Item("评论")
-        )
-        val db = FirebaseFirestore.getInstance()
-        var videoIndex by remember { mutableIntStateOf(0) }
-        var selectedTabIndex by remember {
-            mutableIntStateOf(0)
-        }
-        var showflag by remember { mutableStateOf(false) }
-        val pagerState = rememberPagerState {
-            tabItems.size
-        }
-        val viewModel : VideoPlayViewModel = viewModel()
-        val currentTime = viewModel.getCurrentPlaybackTime()
-        var danMuText by remember { mutableStateOf("") }
-        val danmuList = remember { mutableStateListOf<Danmu>() }
-        var isPlaying by remember { mutableStateOf(false) }
-        LaunchedEffect(videoIndex) {
-            db.collection("弹幕")
-                .whereEqualTo("videoName", videoItem.name)
-                .whereEqualTo("videoIndex", videoIndex)
-                .get()
-                .addOnSuccessListener { documents ->
-                    danmuList.clear()
-                    for (document in documents) {
-                        val danmu = document.toObject(Danmu::class.java)
-                        danmuList.add(danmu)
-                    }
+    fun VideoPlayScreen(videoItem: VideoDescription,navController: NavHostController) {
+    val tabItems = listOf(
+        Tab1Item("详情"),
+        Tab1Item("评论")
+    )
+    val db = FirebaseFirestore.getInstance()
+    var videoIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var showDanmuDialog by remember { mutableStateOf(false) }
+    var showAiDialog by remember { mutableStateOf(false) } // 控制AI消息对话框的显示
+    val pagerState = rememberPagerState { tabItems.size }
+    val viewModel: VideoPlayViewModel = viewModel()
+    val currentTime = viewModel.getCurrentPlaybackTime()
+    var danMuText by remember { mutableStateOf("") }
+    val danmuList = remember { mutableStateListOf<Danmu>() }
+    var isPlaying by remember { mutableStateOf(false) }
+    var index by remember { mutableIntStateOf(1)}
+    var url = videoItem.videoUrl[videoIndex]
+    // 用于AI消息输入
+    var aiMessage by remember { mutableStateOf("") }
+    var fabVisible by remember { mutableStateOf(true) }
+    val chatViewModel: ChatViewModel = viewModel()
+    // 用于动画的透明度状态
+    LaunchedEffect(videoIndex) {
+        db.collection("弹幕")
+            .whereEqualTo("videoName", videoItem.name)
+            .whereEqualTo("videoIndex", videoIndex)
+            .get()
+            .addOnSuccessListener { documents ->
+                danmuList.clear()
+                for (document in documents) {
+                    val danmu = document.toObject(Danmu::class.java)
+                    danmuList.add(danmu)
                 }
-                .addOnFailureListener { e ->
-                    Log.w("Firestore", "Error getting danmu: ", e)
-                }
-        }
-        LaunchedEffect(pagerState.currentPage) {
+            }
+            .addOnFailureListener { e ->
+                Log.w("Firestore", "Error getting danmu: ", e)
+            }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        selectedTabIndex = pagerState.currentPage
+    }
+
+    LaunchedEffect(selectedTabIndex) {
+        pagerState.animateScrollToPage(selectedTabIndex)
+    }
+
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress) {
             selectedTabIndex = pagerState.currentPage
         }
-        LaunchedEffect(selectedTabIndex) {
-            pagerState.animateScrollToPage(selectedTabIndex)
-        }
-        LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
-            if (!pagerState.isScrollInProgress) {
-                selectedTabIndex = pagerState.currentPage
-            }
-        }
+    }
 
-        val context = LocalContext.current
-        Box(modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier
+    val context = LocalContext.current
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)) {
-                    VideoPlay(viewModel,isPlaying, onPlayClosed ={isVideoPlaying->
+                    .height(300.dp)
+            ) {
+                VideoPlay(
+                    viewModel,
+                    isPlaying,
+                    onPlayClosed = { isVideoPlaying ->
                         isPlaying = isVideoPlaying
-                    })
-                }
-                DisplayDanmu(danmuList = danmuList, currentTime = currentTime)
-                TabRow(selectedTabIndex = selectedTabIndex) {
-                    tabItems.forEachIndexed { index, item ->
-                        Tab(
-                            selected = index == selectedTabIndex,
-                            onClick = { selectedTabIndex = index },
-                            text = { Text(text = item.title) },
-                        )
                     }
-                    TextButton(onClick = {
-                        showflag = true
-                    }) {
-                        Text(text = "点我发弹幕")//考虑用Box，然后给文字设定一个从右向左的移动动画
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                    }
+                )
+            }
+            Button(
+                onClick = {
+                    // 跳转到全屏播放页面，并传递当前视频 URL
+                    navController.navigate("fullScreenVideo/${Uri.encode(url)}")
+
+                },
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Text(text = "全屏播放")
+            }
+            DisplayDanmu(danmuList = danmuList, currentTime = currentTime)
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                tabItems.forEachIndexed { index, item ->
+                    Tab(
+                        selected = index == selectedTabIndex,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(text = item.title) },
+                    )
                 }
-                HorizontalPager(state = pagerState) { index ->
-                    when (index) {
-                        0 -> VideoPlayDescription(videoItem = videoItem, onPlayVideo = { url,itemIndex ->
+                TextButton(onClick = {
+                    showDanmuDialog = true
+                }) {
+                    Text(text = "点我发弹幕")
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = null
+                    )
+                }
+            }
+            HorizontalPager(state = pagerState) { index ->
+                when (index) {
+                    0 -> VideoPlayDescription(
+                        videoItem = videoItem,
+                        onPlayVideo = { url, itemIndex ->
                             // 更新videoUrl
                             isPlaying = true
                             viewModel.url = url
                             videoIndex = itemIndex
-                            //bug:点击关闭后视频还在后台播放
+                            // Bug: 点击关闭后视频还在后台播放
                             viewModel.apply {
                                 releasePlayer()
                                 initializePlayer(context)
                                 playVideo()
                             }
                         }
-                        )
-                        1 -> CommentSection(videoItem)
-                    }
+                    )
+                    1 -> CommentSection(videoItem)
                 }
             }
-            if (showflag){
-                Dialog(onDismissRequest = {showflag = false}) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.fillMaxWidth()){
-                            IconButton(onClick = { showflag = false}, modifier = Modifier.align(Alignment.End)) {
-                                Icon(Icons.Default.Close,contentDescription = null)
-                            }
-                        }
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            BasicTextField(
-                                value = danMuText,
-                                onValueChange = {danMuText = it},
-                                modifier = Modifier
-                                    .background(Color.White, CircleShape)
-                                    .height(35.dp)
-                                    .fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 10.dp)
-                                    ) {
-                                        IconButton(
-                                            onClick = { }
-                                        ) {
-                                            Icon(Icons.Default.Edit, null)
-                                        }
-                                        Box(
-                                            modifier = Modifier.weight(1f),
-                                            contentAlignment = Alignment.CenterStart
-                                        ) {
-                                            innerTextField()
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                // 获取当前视频的播放时间
-                                                Log.d("Danmu", "Current playback time: $currentTime,Index: $videoIndex")
-                                                // 构建 Danmu 数据对象
-                                                val danmu = Danmu(
-                                                    time = currentTime,
-                                                    content = danMuText,
-                                                    videoName = videoItem.name,
-                                                    userId = "",
-                                                    videoIndex = videoIndex
-                                                )
+        }
 
-                                                // 将弹幕数据保存到 Firestore
-                                                db.collection("弹幕")
-                                                    .add(danmu)
-                                                    .addOnSuccessListener {
-                                                        Log.d("Firestore", "Danmu added successfully")
-                                                    }
-                                                    .addOnFailureListener { e ->
-                                                        Log.w("Firestore", "Error adding danmu", e)
-                                                    }
-                                                // 重置弹幕输入框
-                                                showflag = false
-                                                danMuText = ""
-                                            },
-                                        ) {
-                                            Icon(Icons.AutoMirrored.Filled.Send, null)
-                                        }
+        // 悬浮按钮
+         FloatingActionButton(
+            onClick = { fabVisible = !fabVisible
+                       showAiDialog = !showAiDialog
+                       index *= -1
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (index * 30).dp, y = 45.dp) // 根据需要调整偏移量
+                .alpha(1f) // 设置透明度
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Chat,
+                contentDescription = "与AI聊天",
+                tint = Color.Black.copy(alpha = 0.7f) // 图标颜色及透明度
+            )
+        }
+
+        // AI消息输入对话框
+       if (showAiDialog) {
+    Dialog(
+        onDismissRequest = {
+            showAiDialog = false
+            index *= -1
+        }
+    ) {
+        // 使用 Surface 来设置背景颜色和圆角
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.background, // 设置背景颜色
+            modifier = Modifier
+                .fillMaxWidth(0.9f) // 设置弹窗宽度为屏幕宽度的90%
+                .fillMaxHeight(0.5f) // 设置弹窗高度为屏幕高度的80%
+        ) {
+            // 嵌套您的 ChatPage Composable
+            ChatPage(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxSize(),
+               chatViewModel
+            )
+        }
+    }
+}
+        // 弹幕输入对话框
+        if (showDanmuDialog) {
+            Dialog(onDismissRequest = { showDanmuDialog = false }) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                ) {
+                    IconButton(
+                        onClick = { showDanmuDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        BasicTextField(
+                            value = danMuText,
+                            onValueChange = { danMuText = it },
+                            modifier = Modifier
+                                .background(Color.White, CircleShape)
+                                .height(35.dp)
+                                .fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { /* 可添加功能 */ }
+                                    ) {
+                                        Icon(Icons.Default.Edit, null)
+                                    }
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        innerTextField()
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            // 获取当前视频的播放时间
+                                            Log.d(
+                                                "Danmu",
+                                                "Current playback time: $currentTime, Index: $videoIndex"
+                                            )
+                                            // 构建 Danmu 数据对象
+                                            val danmu = Danmu(
+                                                time = currentTime,
+                                                content = danMuText,
+                                                videoName = videoItem.name,
+                                                userId = "",
+                                                videoIndex = videoIndex
+                                            )
+
+                                            // 将弹幕数据保存到 Firestore
+                                            db.collection("弹幕")
+                                                .add(danmu)
+                                                .addOnSuccessListener {
+                                                    Log.d("Firestore", "Danmu added successfully")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Log.w("Firestore", "Error adding danmu", e)
+                                                }
+                                            // 重置弹幕输入框
+                                            showDanmuDialog = false
+                                            danMuText = ""
+                                        },
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.Send, null)
                                     }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
+        }
+    }
+}
+    //全屏播放页面
+    @Composable
+    fun FullScreenVideoPlayerScreen(videourl:String,navController: NavHostController) {
+        val context = LocalContext.current
+        val activity = context as Activity
+        val viewModel: VideoPlayViewModel = viewModel()
+
+        // 设置全屏模式并切换到横屏
+        DisposableEffect(Unit) {
+            // 切换到横屏
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            // 进入全屏时隐藏系统 UI
+            activity.window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+            // 在页面销毁时恢复屏幕方向和系统 UI
+            onDispose {
+                // 切换回竖屏
+                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+                // 恢复系统 UI 显示
+                activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+
+                // 释放播放器资源
+                viewModel.releasePlayer()
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            // 使用 VideoPlayer Composable 播放视频
+            VideoPlayer(
+                videoUri = videourl,
+                modifier = Modifier.fillMaxSize(),
+                onBackClicked = {
+                    navController.popBackStack()
+                },
+                onPlaybackStateChanged = { }
+            )
         }
     }
     //弹幕显示(bug:所有弹幕在同一时间出现，修改布局之后发现弹幕又显示不出来了)
@@ -1324,183 +1509,312 @@ data class Comment(
     var videoList1 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
     var videoList2 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
     var videoList3 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
-    var videoList4 by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+
     // 异步加载视频数据
     LaunchedEffect(Unit) {
         try {
-            val documents = db.collection("港剧")
-                .limit(5)
-                .get()
-                .await()
-            val documents1 = db.collection("欧美剧")
-                .limit(5)
-                .get()
-                .await()
-            val documents2 = db.collection("恐怖片")
-                .limit(5)
-                .get()
-                .await()
-            val documents3 = db.collection("纪录片")
-                .limit(5)
-                .get()
-                .await()
-            val videos = documents.map { document ->
-                VideoDescription(
-                    name = document.getString("name") ?: "",
-                    type = document.getString("type") ?: "",
-                    pic = document.getString("pic") ?: "",
-                    lang = document.getString("lang") ?: "",
-                    area = document.getString("area") ?: "",
-                    year = document.getString("year") ?: "",
-                    note = document.getString("note") ?: "",
-                    actor = document.getString("actor") ?: "",
-                    director = document.getString("director") ?: "",
-                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
-                    dianzanCounts = 0,
-                    collectCounts = 0
-                )
+            val categories = listOf("港剧", "欧美剧", "恐怖片", "纪录片")
+            val videoLists = categories.map { category ->
+                val documents = db.collection(category)
+                    .limit(5)
+                    .get()
+                    .await()
+                documents.map { document ->
+                    VideoDescription(
+                        name = document.getString("name") ?: "",
+                        type = document.getString("type") ?: "",
+                        pic = document.getString("pic") ?: "",
+                        lang = document.getString("lang") ?: "",
+                        area = document.getString("area") ?: "",
+                        year = document.getString("year") ?: "",
+                        note = document.getString("note") ?: "",
+                        actor = document.getString("actor") ?: "",
+                        director = document.getString("director") ?: "",
+                        videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
+                        dianzanCounts = 0,
+                        collectCounts = 0
+                    )
+                }
             }
-            val videos1 = documents1.map { document ->
-                VideoDescription(
-                    name = document.getString("name") ?: "",
-                    type = document.getString("type") ?: "",
-                    pic = document.getString("pic") ?: "",
-                    lang = document.getString("lang") ?: "",
-                    area = document.getString("area") ?: "",
-                    year = document.getString("year") ?: "",
-                    note = document.getString("note") ?: "",
-                    actor = document.getString("actor") ?: "",
-                    director = document.getString("director") ?: "",
-                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
-                    dianzanCounts = 0,
-                    collectCounts = 0
-                )
-            }
-            val videos2 = documents2.map { document ->
-                VideoDescription(
-                    name = document.getString("name") ?: "",
-                    type = document.getString("type") ?: "",
-                    pic = document.getString("pic") ?: "",
-                    lang = document.getString("lang") ?: "",
-                    area = document.getString("area") ?: "",
-                    year = document.getString("year") ?: "",
-                    note = document.getString("note") ?: "",
-                    actor = document.getString("actor") ?: "",
-                    director = document.getString("director") ?: "",
-                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
-                    dianzanCounts = 0,
-                    collectCounts = 0
-                )
-            }
-            val videos3 = documents3.map { document ->
-                VideoDescription(
-                    name = document.getString("name") ?: "",
-                    type = document.getString("type") ?: "",
-                    pic = document.getString("pic") ?: "",
-                    lang = document.getString("lang") ?: "",
-                    area = document.getString("area") ?: "",
-                    year = document.getString("year") ?: "",
-                    note = document.getString("note") ?: "",
-                    actor = document.getString("actor") ?: "",
-                    director = document.getString("director") ?: "",
-                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
-                    dianzanCounts = 0,
-                    collectCounts = 0
-                )
-            }
-            videoList = videos // 更新视频列表
-            videoList1 = videos1
-            videoList2 = videos2
-            videoList3 = videos3
+            // 分别赋值给不同的列表
+            videoList = videoLists[0]
+            videoList1 = videoLists[1]
+            videoList2 = videoLists[2]
+            videoList3 = videoLists[3]
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
     // 显示视频列表
-   Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-           Row(
-               modifier = Modifier.fillMaxWidth(),
-               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
-               verticalAlignment = Alignment.CenterVertically // 垂直居中
-           ) {
-               Text(
-                   text = "港剧",
-                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
-                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
-               )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // 定义一个包含类别名称和对应视频列表的列表
+        val categoriesWithVideos = listOf(
+            "港剧" to videoList,
+            "欧美剧" to videoList1,
+            "恐怖片" to videoList2,
+            "纪录片" to videoList3
+        )
 
-               TextButton(onClick = {}) {
-                   Text("更多")
-               }
-           }
+        categoriesWithVideos.forEach { (categoryName, videos) ->
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
+                    verticalAlignment = Alignment.CenterVertically // 垂直居中
+                ) {
+                    Text(
+                        text = categoryName,
+                        style = MaterialTheme.typography.titleLarge, // 使用标题样式
+                        modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
+                    )
 
-           // 这里是视频内容展示部分
-           VideoScreen(navController, videoList)
-       }
-       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-           Row(
-               modifier = Modifier.fillMaxWidth(),
-               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
-               verticalAlignment = Alignment.CenterVertically // 垂直居中
-           ) {
-               Text(
-                   text = "欧美剧",
-                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
-                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
-               )
+                    TextButton(onClick = {
+                        // 点击“更多”按钮时导航到 MoreVideosScreen，并传递类别名称
+                        navController.navigate("moreVideos/${categoryName}")
+                    }) {
+                        Text("更多")
+                    }
+                }
 
-               TextButton(onClick = {}) {
-                   Text("更多")
-               }
-           }
-
-           // 这里是视频内容展示部分
-           VideoScreen(navController, videoList1)
-       }
-       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-           Row(
-               modifier = Modifier.fillMaxWidth(),
-               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
-               verticalAlignment = Alignment.CenterVertically // 垂直居中
-           ) {
-               Text(
-                   text = "恐怖片",
-                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
-                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
-               )
-
-               TextButton(onClick = {}) {
-                   Text("更多")
-               }
-           }
-
-           // 这里是视频内容展示部分
-           VideoScreen(navController, videoList2)
-       }
-       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-           Row(
-               modifier = Modifier.fillMaxWidth(),
-               horizontalArrangement = Arrangement.SpaceBetween, // 保持两端对齐
-               verticalAlignment = Alignment.CenterVertically // 垂直居中
-           ) {
-               Text(
-                   text = "纪录片",
-                   style = MaterialTheme.typography.titleLarge, // 使用标题样式
-                   modifier = Modifier.weight(1f) // 让文本占据尽可能多的空间
-               )
-
-               TextButton(onClick = {}) {
-                   Text("更多")
-               }
-           }
-
-           // 这里是视频内容展示部分
-           VideoScreen(navController, videoList3)
-       }
-   }
-
+                // 这里是视频内容展示部分
+                VideoScreen(navController, videos)
+            }
+        }
+    }
 }
+    //更多
+   @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun MoreVideosScreen(navController: NavHostController, category: String) {
+    val db = FirebaseFirestore.getInstance()
+    var videoList by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+    var lastVisible by remember { mutableStateOf<DocumentSnapshot?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var isEndReached by remember { mutableStateOf(false) }
+
+    val pageSize = 99
+    val coroutineScope = rememberCoroutineScope()
+
+    // 加载视频的函数
+    suspend fun loadVideos() {
+        if (isLoading || isEndReached) return
+
+        isLoading = true
+        try {
+            val query = if (lastVisible == null) {
+                db.collection(category)
+                    .orderBy("name") // 确保排序一致
+                    .limit(pageSize.toLong())
+            } else {
+                db.collection(category)
+                    .orderBy("name")
+                    .startAfter(lastVisible!!)
+                    .limit(pageSize.toLong())
+            }
+
+            val snapshot = query.get().await()
+            val newVideos = snapshot.documents.map { document ->
+                VideoDescription(
+                    name = document.getString("name") ?: "",
+                    type = document.getString("type") ?: "",
+                    pic = document.getString("pic") ?: "",
+                    lang = document.getString("lang") ?: "",
+                    area = document.getString("area") ?: "",
+                    year = document.getString("year") ?: "",
+                    note = document.getString("note") ?: "",
+                    actor = document.getString("actor") ?: "",
+                    director = document.getString("director") ?: "",
+                    videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
+                    dianzanCounts = 0,
+                    collectCounts = 0
+                )
+            }
+
+            videoList = videoList + newVideos
+
+            if (snapshot.documents.isNotEmpty()) {
+                lastVisible = snapshot.documents.last()
+            }
+
+            if (snapshot.size() < pageSize) {
+                isEndReached = true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    // 初始加载
+    LaunchedEffect(category) {
+        loadVideos()
+    }
+
+    // 处理“加载更多”按钮点击
+    fun onLoadMore() {
+        coroutineScope.launch {
+            loadVideos()
+        }
+    }
+
+    // 使用 Scaffold 布局
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "$category 更多") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            when {
+                isLoading && videoList.isEmpty() -> {
+                    // 初始加载时显示进度指示器
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                videoList.isEmpty() && !isLoading -> {
+                    // 无视频时显示提示
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "暂无更多视频")
+                        }
+                    }
+                }
+                else -> {
+                    // 显示视频列表
+                    item {
+                        NewVideoScreen(navController, videoList)
+                    }
+
+                    // “加载更多”按钮或已加载全部视频提示
+                    if (!isEndReached) {
+                        item {
+                            Button(
+                                onClick = { onLoadMore() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                enabled = !isLoading
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .padding(end = 8.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Text("加载中...")
+                                } else {
+                                    Text("加载更多")
+                                }
+                            }
+                        }
+                    } else {
+                        item {
+                            Text(
+                                text = "已加载全部视频",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                textAlign = TextAlign.Center,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+    @Composable
+    fun NewVideoScreen(navController: NavHostController, videoList: List<VideoDescription>) {
+    // 将视频列表按每三个分组
+    val rows = videoList.chunked(3)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp) // 增加行间距
+    ) {
+        rows.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween // 两端对齐
+            ) {
+                rowItems.forEach { video ->
+                    Column(
+                        modifier = Modifier
+                            .width(110.dp) // 调整宽度
+                            .clickable {
+                                navController.navigate("videoDescription/${video.name}")
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(110.dp) // 调整高度
+                        ) {
+                            AsyncImage(
+                                model = video.pic,
+                                contentDescription = video.name,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(8.dp)) // 圆角
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp)) // 图片与文字间距
+                        Text(
+                            text = video.name,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                // 如果当前行视频项少于3个，添加空的占位符以保持对齐
+                if (rowItems.size < 3) {
+                    for (i in rowItems.size until 3) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
     @Composable
     fun SearchScreen(navController: NavHostController) {
     var searchResults by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }

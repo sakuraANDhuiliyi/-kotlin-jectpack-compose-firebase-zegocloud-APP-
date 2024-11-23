@@ -21,10 +21,10 @@ class ChatViewModel : ViewModel() {
         apiKey = Constants.apiKey
     )
 
+
     @RequiresApi(35)
     fun sendMessage(question : String){
         viewModelScope.launch {
-
             try{
                 val chat = generativeModel.startChat(
                     history = messageList.map {

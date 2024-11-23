@@ -57,7 +57,9 @@ android {
 
 dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.compose.material.material.icons.extended)
     implementation(files("libs/SparkChain.aar"))
+    implementation("com.google.android.exoplayer:exoplayer:2.18.2")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
