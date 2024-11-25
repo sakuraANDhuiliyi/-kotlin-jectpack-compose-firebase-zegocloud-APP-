@@ -5,12 +5,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
+import androidx.compose.material3.TextFieldDefaults.shape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,8 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomControlBar(
     isPlaying: Boolean,
@@ -30,7 +38,8 @@ fun BottomControlBar(
     progress: Float,
     totalDuration: Long,
     onProgressChanged: (Float, Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAI: () -> Unit
 ) {
     // 状态管理：是否正在拖动进度条
     var isUserDragging by remember { mutableStateOf(false) }
@@ -171,7 +180,7 @@ fun BottomControlBar(
         ) {
             val pauseButtonSize = screenHeight * 0.12f
             val lastNextButtonSize = screenHeight * 0.1f
-
+            var danmakuText by remember { mutableStateOf("") }
             // 上一集按钮
             IconButton(onClick = onPrevious, modifier = Modifier.size(pauseButtonSize.dp)) {
                 Icon(
@@ -204,6 +213,50 @@ fun BottomControlBar(
                     tint = Color.White,
                     modifier = Modifier.size(lastNextButtonSize.dp)
                 )
+            }
+            Spacer(modifier = Modifier.width((screenHeight / 32).dp))
+            //AI
+            IconButton(onClick =onAI, modifier = Modifier.size(pauseButtonSize.dp)) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = "AI",
+                    tint = Color.White,
+                    modifier = Modifier.size(lastNextButtonSize.dp)
+                )
+            }
+            //弹幕
+            Spacer(modifier = Modifier.width((screenHeight / 32).dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = (screenWidth / 64).dp, vertical = (screenHeight * 0.01f).dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 输入框
+                TextField(
+                    value = danmakuText,
+                    onValueChange = { danmakuText = it },
+                    placeholder = { Text(text = "来唠会嗑呗") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+                // 发送按钮
+                IconButton(
+                    onClick = {},
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(Color.DarkGray, shape = MaterialTheme.shapes.small)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "发送弹幕",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }

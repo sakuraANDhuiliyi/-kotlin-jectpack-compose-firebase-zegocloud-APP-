@@ -21,11 +21,21 @@ import kotlinx.coroutines.launch
 import android.app.Activity
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app1.ChatPage
+import com.example.app1.ChatViewModel
 import com.example.app1.videoPlayer.BottomControlBar
 import com.example.app1.videoPlayer.TopControlBar
 import kotlinx.coroutines.Job
 
+@RequiresApi(35)
 @Composable
 fun VideoPlayer(
     videoUri: String,
@@ -34,7 +44,6 @@ fun VideoPlayer(
     onPlaybackStateChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-
     // 创建并管理 ExoPlayer 实例
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
 
@@ -136,6 +145,8 @@ fun VideoPlayer(
                 if (controlsVisible) showControls()
             }
     ) {
+        var showAiDialog by remember { mutableStateOf(false) } // 控制AI消息对话框的显示
+        val chatViewModel: ChatViewModel = viewModel()
         AndroidView(
             factory = { context ->
                 StyledPlayerView(context).apply {
@@ -145,7 +156,30 @@ fun VideoPlayer(
             },
             modifier = Modifier.fillMaxSize()
         )
-
+        if (showAiDialog) {
+            Dialog(
+                onDismissRequest = {
+                    showAiDialog = false
+                }
+            ) {
+                // 使用 Surface 来设置背景颜色和圆角
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.background, // 设置背景颜色
+                    modifier = Modifier
+                        .fillMaxWidth(1f) // 设置弹窗宽度为屏幕宽度的90%
+                        .fillMaxHeight(0.9f) // 设置弹窗高度为屏幕高度的80%
+                ) {
+                    // 嵌套您的 ChatPage Composable
+                    ChatPage(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxSize(),
+                        chatViewModel
+                    )
+                }
+            }
+        }
         if (controlsVisible) {
             TopControlBar(
                 title = "Playing Video",
@@ -178,7 +212,12 @@ fun VideoPlayer(
                         startHideTimer() // 恢复自动隐藏控制栏的逻辑
                     }
                 },
-                modifier = Modifier.align(Alignment.BottomStart)
+                modifier = Modifier.align(Alignment.BottomStart),
+                onAI = {
+                    showAiDialog = true
+                    exoPlayer.playWhenReady = !exoPlayer.playWhenReady
+                    showControls()
+                }
             )
         }
     }

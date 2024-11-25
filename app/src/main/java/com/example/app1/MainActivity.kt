@@ -440,14 +440,13 @@ class MainActivity : AppCompatActivity(){
                             }
                             composable("selectLogin") { selectLogin(navController) }
                         }
-
                       }
                     }
-
                 }
             }
         }
     }
+//隐藏底部导航栏（路由带参数导致匹配不正确）
 fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Boolean {
     if (currentRoute == null) return true
     return !hiddenRoutes.any { hiddenRoute ->
@@ -459,6 +458,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     }
 }
+
     data class TODoItem(
     var title:String,
     var isCompleted: Boolean = false
@@ -1194,6 +1194,7 @@ data class Comment(
     var aiMessage by remember { mutableStateOf("") }
     var fabVisible by remember { mutableStateOf(true) }
     val chatViewModel: ChatViewModel = viewModel()
+    val isFullScreenRequested by viewModel.isFullScreenRequested.collectAsState()
     // 用于动画的透明度状态
     LaunchedEffect(videoIndex) {
         db.collection("弹幕")
@@ -1225,7 +1226,13 @@ data class Comment(
             selectedTabIndex = pagerState.currentPage
         }
     }
-
+    LaunchedEffect(isFullScreenRequested) {
+            if (isFullScreenRequested) {
+                navController.navigate("fullScreenVideo/${Uri.encode(url)}")
+                // 导航完成后，重置状态
+                viewModel.resetFullScreenRequest()
+            }
+        }
     val context = LocalContext.current
 
     Box(
@@ -1245,18 +1252,6 @@ data class Comment(
                         isPlaying = isVideoPlaying
                     }
                 )
-            }
-            Button(
-                onClick = {
-                    // 跳转到全屏播放页面，并传递当前视频 URL
-                    navController.navigate("fullScreenVideo/${Uri.encode(url)}")
-
-                },
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.CenterHorizontally)
-            ) {
-                Text(text = "全屏播放")
             }
             DisplayDanmu(danmuList = danmuList, currentTime = currentTime)
             TabRow(selectedTabIndex = selectedTabIndex) {
@@ -1424,6 +1419,7 @@ data class Comment(
     }
 }
     //全屏播放页面
+    @RequiresApi(35)
     @Composable
     fun FullScreenVideoPlayerScreen(videourl:String,navController: NavHostController) {
         val context = LocalContext.current

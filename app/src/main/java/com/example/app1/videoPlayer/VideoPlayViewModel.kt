@@ -12,15 +12,24 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import android.content.pm.ActivityInfo
 import android.view.View
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 
 @OptIn(UnstableApi::class)
 class VideoPlayViewModel : ViewModel() {
     private var exoPlayer: ExoPlayer? = null
     var url : String = ""
+    private val _isFullScreenRequested = MutableStateFlow(false)
+    val isFullScreenRequested: StateFlow<Boolean> = _isFullScreenRequested
 
-
-
+    fun resetFullScreenRequest() {
+        viewModelScope.launch {
+            _isFullScreenRequested.value = false
+        }
+    }
     fun initializePlayer(context: Context) {
         if (exoPlayer == null) {
             exoPlayer = ExoPlayer.Builder(context).build()
@@ -62,38 +71,21 @@ class VideoPlayViewModel : ViewModel() {
     }
 
   fun playerViewBuilder(context: Context): PlayerView {
-    val activity = context as Activity
     val playerView = PlayerView(context).apply {
         player = exoPlayer
         controllerAutoShow = true
         keepScreenOn = true
         useController = true // 确保播放器控制器可见
-
-        // 设置全屏按钮的点击监听
         setFullscreenButtonClickListener { isFullScreen ->
             if (isFullScreen) {
-                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-
-                // 强制隐藏系统UI，确保全屏播放
-                activity.window.decorView.systemUiVisibility = (
-                        View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        )
-            } else {
-                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-
-                // 恢复系统UI显示
-                activity.window.decorView.systemUiVisibility = (
-                        View.SYSTEM_UI_FLAG_VISIBLE
-                        )
+                // 更新状态，表示请求进入全屏
+                viewModelScope.launch {
+                    _isFullScreenRequested.value = true
+                }
             }
         }
     }
 
     return playerView
 }
-
-
-
 }
