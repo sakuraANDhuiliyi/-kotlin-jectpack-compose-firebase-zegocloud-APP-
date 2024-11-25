@@ -29,7 +29,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
@@ -60,7 +59,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -78,8 +76,6 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
@@ -156,8 +152,6 @@ import coil.compose.AsyncImage
 import coil.decode.GifDecoder
 import coil.request.ImageRequest
 import com.example.app1.roomDb.LazycolumnDatabase
-import com.example.app1.roomDb.viewModel.LazycolumnViewModel
-import com.example.app1.roomDb.viewModel.Repository
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -194,14 +188,8 @@ import com.example.app1.roomDb.Lazycolumn_1Database
 import com.example.app1.roomDb.viewModel.Lazycolumn_1Repository
 import com.example.app1.roomDb.viewModel.Lazycolumn_1ViewModel
 import com.example.app1.roomDb.viewModel.TodoViewModel
-import com.example.app1.videoPlayer.JhVideoList
-import com.example.app1.videoPlayer.Re0VideoList
-import com.example.app1.videoPlayer.StreamerPlayer
 import com.example.app1.videoPlayer.VideoPlayViewModel
 import com.example.app1.videoPlayer.VideoPlayer
-import com.example.app1.videoPlayer.VideoPlayerViewModel
-import com.example.app1.videoPlayer.YisiHougongVideoList
-import com.example.app1.videoPlayer.mainVideoList
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
@@ -226,23 +214,6 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 class MainActivity : AppCompatActivity(){
-    private val db by lazy {
-        Room.databaseBuilder(
-            applicationContext,
-            LazycolumnDatabase::class.java,
-            name = "message.db"
-        ).build()
-    }
-    private val viewModel by viewModels<LazycolumnViewModel>(
-        factoryProducer = {
-            object : ViewModelProvider.Factory{
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return LazycolumnViewModel(Repository(db))as T
-                }
-            }
-        }
-    )
-
     private val db_1 by lazy {
         Room.databaseBuilder(
             applicationContext,
@@ -311,13 +282,10 @@ class MainActivity : AppCompatActivity(){
                 // 获取当前的导航栈条目
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
-
                 // 判断是否应该显示底部导航栏
                 val showBottomBar = shouldShowBottomBar(currentRoute, hiddenBottomBarRoutes)
-
                 // 日志输出，便于调试
                 Log.d("CurrentRoute", "Current route: $currentRoute, showBottomBar: $showBottomBar")
-
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
@@ -394,11 +362,6 @@ class MainActivity : AppCompatActivity(){
                             composable("demo"){ VideoUrlListScreen() }
                             composable("jsoup") { demo1() }
                             composable("main") { ChatMainScreen() }
-                            composable("video") { LoveVideo(navController = navController) }
-                            composable("疑似后宫") { SteamingVideo() }
-                            composable("Re0") { Re0SteamingVideo() }
-                            composable("精幻") { JhSteamingVideo() }
-                            composable("其他新番") { OtherSteamingVideo() }
                             composable("alarm") { alarm() }
                             composable("app") { OpenAppButton() }
                             composable("splash") { GifSplashScreen(navController = navController) }
@@ -3445,7 +3408,6 @@ data class Comment(
                             )
                         }
                     }
-
                     HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { index ->
                         when (index) {
                             0 -> MainVideoScreen(navController)
@@ -4699,73 +4661,6 @@ data class Comment(
             }
         }
     }
-
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun HomeScreen(viewModel: Lazycolumn_1ViewModel,navController: NavHostController) {
-        var searchText by remember { mutableStateOf("") }
-        var showDialog by remember { mutableStateOf(false) }
-        var showBottomSheet by remember { mutableStateOf(false) }
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = false,
-        )
-        Box {
-            Column {
-                CheckName(onSearch = { searchText = it })
-                Box() {
-                    if (showBottomSheet) {
-                        ModalBottomSheet(
-                            modifier = Modifier.fillMaxHeight(),
-                            sheetState = sheetState,
-                            onDismissRequest = { showBottomSheet = false }
-                        ) {
-
-                            LazyMessageCara(
-                                messages = MsgData.messages,
-                                searchText = searchText,
-                                navController = navController
-                            )
-                        }
-                    }
-                    if (showDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                showDialog = false
-                            },
-
-                            text = {
-                                Text(text = "查看")
-                            },
-                            confirmButton = {
-                                Button(
-                                    onClick = {
-                                        showDialog = false
-                                    }
-                                ) {
-                                    Text("确认")
-                                }
-                            },
-                            dismissButton = {
-
-                                Button(
-                                    onClick = {
-                                        showDialog = false
-                                    }
-                                ) {
-                                    Text("取消")
-                                }
-                            }
-                        )
-                    }
-
-                LazyMessCard1(viewModel, searchText)
-            }
-            }
-        }
-
-    }
-
     @Composable
     fun MenuScreen(navController: NavHostController) {
         var searchText by remember { mutableStateOf("") }
@@ -4827,8 +4722,6 @@ data class Comment(
         val sharedPreferences = context.getSharedPreferences("UserLoginInfo", Context.MODE_PRIVATE)
         return sharedPreferences.getString("username", "") ?: "" // 如果没有用户名，返回空字符串
     }
-
-
     //生成随机访客id
     fun generateRandomId(length: Int): String {
         val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -4859,7 +4752,6 @@ data class Comment(
         // 如果 "userId" 为 null，返回默认值 "guest"
         return sharedPreferences.getString("userId", "guest") ?: "guest"
     }
-
 
     @Composable
     fun StartScreen(navController: NavHostController) {
@@ -5158,31 +5050,6 @@ data class Comment(
 
 
     }
-
-    @Composable
-    fun imageupload(){
-        var selectedImageUri by remember {
-            mutableStateOf<Uri?>(null)
-        }
-        var selectedImageUriList by remember {
-            mutableStateOf<List<Uri>>(emptyList())
-        }
-        var singleImagePckerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = {
-                uri->
-                selectedImageUri = uri
-            },
-        )
-        var multipleImagePckerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickMultipleVisualMedia(),
-            onResult = {uriList ->
-                selectedImageUriList = uriList
-            }
-        )
-
-    }
-
     @Composable
     fun lazyOne(messages: List<Message>,navController: NavHostController){
         Box(modifier = Modifier.fillMaxSize()) {
@@ -5197,222 +5064,6 @@ data class Comment(
     fun example(navController: NavHostController){
         lazyOne(messages = MsgData.messages, navController = navController)
     }
-
-    @Composable
-    fun SteamingVideo(){
-        var isPlaying by remember {
-            mutableStateOf(false)
-        }
-        var videoItemIndex by remember {
-            mutableIntStateOf(0)
-        }
-        val viewModel :VideoPlayerViewModel = viewModel()
-        viewModel.videoList = YisiHougongVideoList
-        val context = LocalContext.current
-        Column {
-            StreamerPlayer(viewModel = viewModel, isPlaying =isPlaying , onPlayClosed ={isVideoPlaying->
-                isPlaying = isVideoPlaying
-            } )
-
-            LazyColumn(modifier = Modifier.padding(10.dp), content = {
-                itemsIndexed(items= YisiHougongVideoList){
-                    index,item ->
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clickable {
-                            if (videoItemIndex != index) isPlaying = false
-                            viewModel.index = index
-                            videoItemIndex = viewModel.index
-                        }, horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically)
-                    {
-                        AsyncImage(model = item.thumbnail, contentDescription = "视频缩略图", modifier = Modifier
-                            .fillMaxHeight()
-                            .size(200.dp))
-                        Text(text = "第${index+1}集",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .weight(1f),
-                        )
-                    }
-                    HorizontalDivider(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp))
-                }
-            })
-            LaunchedEffect(videoItemIndex) {
-                isPlaying = true
-                viewModel.apply {
-                    releasePlayer()
-                    initializePlayer(context)
-                    playVideo()
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun Re0SteamingVideo(){
-    var isPlaying by remember {
-        mutableStateOf(false)
-    }
-    var videoItemIndex by remember {
-        mutableIntStateOf(0)
-    }
-    val viewModel :VideoPlayerViewModel = viewModel()
-    viewModel.videoList = Re0VideoList
-    val context = LocalContext.current
-    Column {
-        StreamerPlayer(viewModel = viewModel, isPlaying =isPlaying , onPlayClosed ={isVideoPlaying->
-            isPlaying = isVideoPlaying
-        } )
-
-        LazyColumn(modifier = Modifier.padding(10.dp), content = {
-            itemsIndexed(items= Re0VideoList){
-                    index,item ->
-                Row(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clickable {
-                        if (videoItemIndex != index) isPlaying = false
-                        viewModel.index = index
-                        videoItemIndex = viewModel.index
-                    }, horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically)
-                {
-                    AsyncImage(model = item.thumbnail, contentDescription = "视频缩略图", modifier = Modifier
-                        .fillMaxHeight()
-                        .size(200.dp))
-                    Text(text = "第${index+1}集",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                    )
-                }
-                HorizontalDivider(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp))
-            }
-        })
-        LaunchedEffect(videoItemIndex) {
-            isPlaying = true
-            viewModel.apply {
-                releasePlayer()
-                initializePlayer(context)
-                playVideo()
-            }
-        }
-    }
-}
-
-    @Composable
-    fun JhSteamingVideo(){
-        var isPlaying by remember {
-            mutableStateOf(false)
-        }
-        var videoItemIndex by remember {
-            mutableIntStateOf(0)
-        }
-        val viewModel :VideoPlayerViewModel = viewModel()
-        viewModel.videoList = JhVideoList
-        val context = LocalContext.current
-        Column {
-            StreamerPlayer(viewModel = viewModel, isPlaying =isPlaying , onPlayClosed ={isVideoPlaying->
-                isPlaying = isVideoPlaying
-            } )
-
-            LazyColumn(modifier = Modifier.padding(10.dp), content = {
-                itemsIndexed(items= JhVideoList){
-                        index,item ->
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clickable {
-                            if (videoItemIndex != index) isPlaying = false
-                            viewModel.index = index
-                            videoItemIndex = viewModel.index
-                        }, horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically)
-                    {
-                        AsyncImage(model = item.thumbnail, contentDescription = "视频缩略图", modifier = Modifier
-                            .fillMaxHeight()
-                            .size(200.dp))
-                        Text(text = "第${index+1}集",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .weight(1f),
-                        )
-                    }
-                    HorizontalDivider(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp))
-                }
-            })
-            LaunchedEffect(videoItemIndex) {
-                isPlaying = true
-                viewModel.apply {
-                    releasePlayer()
-                    initializePlayer(context)
-                    playVideo()
-                }
-            }
-        }
-    }
-    @Composable
-     fun OtherSteamingVideo(){
-    var isPlaying by remember {
-        mutableStateOf(false)
-    }
-    var videoItemIndex by remember {
-        mutableIntStateOf(0)
-    }
-    val viewModel :VideoPlayerViewModel = viewModel()
-    viewModel.videoList = mainVideoList
-    val context = LocalContext.current
-    Column {
-        StreamerPlayer(viewModel = viewModel, isPlaying =isPlaying , onPlayClosed ={isVideoPlaying->
-            isPlaying = isVideoPlaying
-        } )
-
-        LazyColumn(modifier = Modifier.padding(10.dp), content = {
-            itemsIndexed(items= mainVideoList){
-                    index,item ->
-                Row(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clickable {
-                        if (videoItemIndex != index) isPlaying = false
-                        viewModel.index = index
-                        videoItemIndex = viewModel.index
-                    }, horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically)
-                {
-                    AsyncImage(model = item.thumbnail, contentDescription = "视频缩略图", modifier = Modifier
-                        .fillMaxHeight()
-                        .size(200.dp))
-                    Text(text = "第${index+1}集",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                    )
-                }
-                HorizontalDivider(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp))
-            }
-        })
-        LaunchedEffect(videoItemIndex) {
-            isPlaying = true
-            viewModel.apply {
-                releasePlayer()
-                initializePlayer(context)
-                playVideo()
-            }
-        }
-    }
-}
-
     @Composable
     fun LoveVideo(navController: NavHostController){
         Column(modifier = Modifier.fillMaxSize()) {
