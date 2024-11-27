@@ -1947,47 +1947,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     }
 }
-    //GetVedio
-    @Composable
-    fun getVideo(queryText: String): State<List<VideoDescription>> {
-        val db = FirebaseFirestore.getInstance()
-        val searchResults = remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
-        LaunchedEffect(queryText) {
-            if (queryText.isNotEmpty()) {
-                db.collection("港剧")
-                    .orderBy("name")
-                    .startAt(queryText)
-                    .endAt(queryText + "\uf8ff") // 使用模糊搜索
-                    .get()
-                    .addOnSuccessListener { documents ->
-                        val videos = documents.map { document ->
-                            VideoDescription(
-                                name = document.getString("name") ?: "",
-                                type = document.getString("type") ?: "",
-                                pic = document.getString("pic") ?: "",
-                                lang = document.getString("lang") ?: "",
-                                area = document.getString("area") ?: "",
-                                year = document.getString("year") ?: "",
-                                note = document.getString("note") ?: "",
-                                actor = document.getString("actor") ?: "",
-                                director = document.getString("director") ?: "",
-                                videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
-                                dianzanCounts = 0,
-                                collectCounts = 0
-                            )
-                        }
-                        searchResults.value = videos // 更新搜索结果
-                        Log.d("Firestore", "Found ${videos.size} videos")
-                    }
-                    .addOnFailureListener { exception ->
-                        Log.w("Firestore", "Error getting documents: ", exception)
-                    }
-            } else {
-                searchResults.value = emptyList()
-            }
-        }
-        return searchResults
-    }
     //示例
     fun fetchWebPageContent(url: String): String? {
         val client = OkHttpClient()

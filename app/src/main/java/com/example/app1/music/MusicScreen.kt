@@ -142,7 +142,7 @@ fun MusicScreen(navController: NavHostController) {
     }
 }
 
-// 执行搜索的辅助函数
+// 执行搜索函数
 fun performSearch(
     query: String,
     onSuccess: (List<SongInfo>) -> Unit,

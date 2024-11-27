@@ -30,7 +30,7 @@ suspend fun getSongIds(query: String): List<Long>? = withContext(Dispatchers.IO)
     }
 }
 
-// 获取歌曲详细信息
+// 获取歌曲的详细信息
 suspend fun getSongDetails(songIds: List<Long>): MutableList<SongInfo> = withContext(Dispatchers.IO) {
     val client = OkHttpClient()
     val songInfoList = mutableListOf<SongInfo>()
