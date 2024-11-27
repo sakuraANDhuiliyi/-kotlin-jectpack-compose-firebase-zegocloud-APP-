@@ -1,7 +1,6 @@
 package com.example.app1
 
 import android.annotation.SuppressLint
-import com.example.app1.roomDb.viewModel.UserViewModel
 import android.app.Activity
 import android.app.AlarmManager
 import android.content.ComponentName
@@ -83,7 +82,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -93,101 +92,132 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.twotone.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.app1.ui.theme.App1Theme
-import kotlinx.coroutines.delay
-import androidx.compose.material3.*
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.ViewModel
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.room.Room
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import coil.decode.GifDecoder
 import coil.request.ImageRequest
-import com.example.app1.roomDb.LazycolumnDatabase
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import com.amap.api.maps2d.CameraUpdateFactory
 import com.amap.api.maps2d.MapView
 import com.amap.api.maps2d.model.LatLng
-import com.example.app1.BiometricPromptManager.*
+import com.example.app1.BiometricPromptManager.BiometricResult
 import com.example.app1.alarm.AlarmItem
 import com.example.app1.alarm.AndroidAlarmScheduler
+import com.example.app1.chatWithAI.ChatPage
+import com.example.app1.chatWithAI.ChatViewModel
+import com.example.app1.chatWithUser.ChatActivity
+import com.example.app1.music.Lyric
+import com.example.app1.music.MusicPlayerScreen
+import com.example.app1.music.MusicScreen
+import com.example.app1.music.SongInfo
+import com.example.app1.music.fetchLyrics
+import com.example.app1.music.formatTime
 import com.example.app1.pages.TodoListPage
 import com.example.app1.roomDb.Lazycolumn_1
-import com.example.app1.roomDb.Lazycolumn_1Database
-import com.example.app1.roomDb.viewModel.Lazycolumn_1Repository
 import com.example.app1.roomDb.viewModel.Lazycolumn_1ViewModel
 import com.example.app1.roomDb.viewModel.TodoViewModel
+import com.example.app1.roomDb.viewModel.UserViewModel
+import com.example.app1.ui.theme.App1Theme
 import com.example.app1.videoPlayer.VideoPlayViewModel
 import com.example.app1.videoPlayer.VideoPlayer
 import com.google.firebase.Firebase
@@ -196,8 +226,11 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -207,29 +240,14 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
-import java.time.LocalDateTime
 import java.io.IOException
 import java.io.StringReader
 import java.net.URLDecoder
 import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity(){
-    private val db_1 by lazy {
-        Room.databaseBuilder(
-            applicationContext,
-            Lazycolumn_1Database::class.java,
-            name = "Lazy message.db"
-        ).build()
-    }
-    private val viewModel_1 by viewModels<Lazycolumn_1ViewModel>(
-        factoryProducer = {
-            object : ViewModelProvider.Factory{
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return Lazycolumn_1ViewModel(Lazycolumn_1Repository(db_1))as T
-                }
-            }
-        }
-    )
     private val userViewModel by viewModels<UserViewModel>()
     @RequiresApi(35)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -238,10 +256,8 @@ class MainActivity : AppCompatActivity(){
         setContent {
             App1Theme {
                 val chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
-                val authViewModel : AuthViewModel by viewModels()
                 val navController = rememberNavController()
                 val db = FirebaseFirestore.getInstance()
-                val currentBackStackEntry = navController.currentBackStackEntryAsState()
                 var videoList by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
                 LaunchedEffect(Unit) {
                     try {
@@ -277,7 +293,8 @@ class MainActivity : AppCompatActivity(){
                     "selectLogin",
                     "fullScreenVideo",
                     "videoPlayScreen",
-                    "biometricAuth"
+                    "biometricAuth",
+                    "musicPlayer"
                 )
                 // 获取当前的导航栈条目
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -297,6 +314,7 @@ class MainActivity : AppCompatActivity(){
                     innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         NavHost(navController = navController, startDestination = "start") {
+                            composable("example"){LyricExample(32408263)}
                             composable("start"){ StartScreen(navController) }
                             composable("thumbUpList"){ThumbUpList(navController)}
                             composable("collectList"){ CollectList(navController) }
@@ -321,6 +339,19 @@ class MainActivity : AppCompatActivity(){
                                 val videoUrl = backStackEntry.arguments?.getString("videoUrl") ?: ""
                                 FullScreenVideoPlayerScreen(videoUrl,navController)
                             }
+                            //music
+                            composable(
+                                route = "musicPlayer/{songJson}",
+                                arguments = listOf(navArgument("songJson") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                // 获取传递的 JSON 字符串并反序列化为 SongInfo 对象
+                                val encodedSongJson = backStackEntry.arguments?.getString("songJson") ?: ""
+                                val decodedSongJson = URLDecoder.decode(encodedSongJson, StandardCharsets.UTF_8.toString())
+                                val songInfo = Gson().fromJson(decodedSongJson, SongInfo::class.java)
+                                // 传递 SongInfo 对象给 MusicPlayerScreen
+                                MusicPlayerScreen(songInfo = songInfo,navController)
+                            }
+                            composable("MusicScreen"){ MusicScreen(navController) }
                             composable("XiaoShuo"){ WebContentScreen(navController) }
                             composable("readChapter/{link}") { backStackEntry ->
                                 val link = backStackEntry.arguments?.getString("link")
@@ -366,11 +397,9 @@ class MainActivity : AppCompatActivity(){
                             composable("app") { OpenAppButton() }
                             composable("splash") { GifSplashScreen(navController = navController) }
                             composable("home") {
-                                page(
+                                Page(
                                     navController,
-                                    viewModel_1,
                                     todoViewModel,
-                                    authViewModel
                                 )
                             }
                             composable("menu") { MenuScreen(navController = navController) }
@@ -409,6 +438,25 @@ class MainActivity : AppCompatActivity(){
             }
         }
     }
+@Composable
+fun LyricExample(id: Long) {
+    var lyricsList by remember { mutableStateOf<List<Lyric>>(emptyList()) }
+    LaunchedEffect(id) {
+        try {
+            val fetchedLyrics = fetchLyrics(id)
+            lyricsList = fetchedLyrics
+        } catch (e: Exception) {
+            // 处理错误
+            e.printStackTrace()
+        }
+    }
+    LazyColumn {
+        items(lyricsList) { lyric ->
+            Text(text = "[${formatTime(lyric.timeInSeconds)}] ${lyric.text}")
+        }
+    }
+}
+
 //隐藏底部导航栏（路由带参数导致匹配不正确）
 fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Boolean {
     if (currentRoute == null) return true
@@ -493,7 +541,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     constructor() : this("", "", "", "", "",null,null,null)
 }
     data class Message1(val sender: String, val content: String)//Ai 聊天界面
-data class Comment(
+    data class Comment(
     val username: String = "",
     val content: String = "",
     val avatar: String = ""
@@ -3121,8 +3169,7 @@ data class Comment(
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun page(navController: NavHostController,viewModel: Lazycolumn_1ViewModel,todoViewModel: TodoViewModel,authViewModel: AuthViewModel){
-
+    fun Page(navController: NavHostController,todoViewModel: TodoViewModel){
         val tabItems = listOf(
             TabItem(
                 title = "首页",
@@ -3135,7 +3182,7 @@ data class Comment(
                 unSelectedIcon = Icons.Outlined.FavoriteBorder
             ),
             TabItem(
-                title = "点赞过",
+                title = "点赞",
                 selectedIcon = Icons.Filled.ThumbUp,
                 unSelectedIcon = Icons.Outlined.ThumbUp
             ) ,
@@ -3150,9 +3197,9 @@ data class Comment(
                 unSelectedIcon = Icons.Outlined.Email
             ),
             TabItem(
-                title = "好看的",
-                selectedIcon = Icons.Filled.Person,
-                unSelectedIcon = Icons.Outlined.Person
+                title = "音乐",
+                selectedIcon = Icons.Filled.MusicNote,
+                unSelectedIcon = Icons.Outlined.MusicNote
             )
 
         )
@@ -3182,7 +3229,6 @@ data class Comment(
         }
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
-        var searchText by remember { mutableStateOf("") }
         val context = LocalContext.current
         val isGuest = isGuestUser(context)
         val guestName = getUserId(context)
@@ -3404,7 +3450,8 @@ data class Comment(
                                         imageVector = if (index == selectedTabIndex) item.selectedIcon else item.unSelectedIcon,
                                         contentDescription = item.title
                                     )
-                                }
+                                },
+                                modifier = Modifier.height(55.dp)
                             )
                         }
                     }
@@ -3415,7 +3462,7 @@ data class Comment(
                             2 -> Text("")
                             3 -> Text("")
                             4 -> WebContentScreen(navController)
-                            5 -> Text("")
+                            5 -> MusicScreen(navController)
                         }
                     }
                 }
@@ -3952,7 +3999,7 @@ data class Comment(
             onValueChange = {
             },
             label = {
-                Text(text = "搜索")
+                Text(text = "搜索", fontSize = 10.sp)
             },
             leadingIcon = {
                 IconButton(onClick = {
@@ -3961,7 +4008,9 @@ data class Comment(
                     Icon(Icons.Default.Search, contentDescription = null)
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(30.dp).clickable {
+                navController.navigate("videoSearch")
+            },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,

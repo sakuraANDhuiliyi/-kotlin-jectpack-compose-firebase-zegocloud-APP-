@@ -1,6 +1,5 @@
 package com.example.app1.videoPlayer
 
-import android.net.Uri
 import android.os.Build
 import android.view.View
 import androidx.compose.foundation.clickable
@@ -29,10 +28,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.app1.ChatPage
-import com.example.app1.ChatViewModel
-import com.example.app1.videoPlayer.BottomControlBar
-import com.example.app1.videoPlayer.TopControlBar
+import com.example.app1.chatWithAI.ChatPage
+import com.example.app1.chatWithAI.ChatViewModel
 import kotlinx.coroutines.Job
 
 @RequiresApi(35)
