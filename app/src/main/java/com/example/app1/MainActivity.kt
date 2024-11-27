@@ -75,6 +75,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
@@ -140,6 +141,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -212,6 +214,7 @@ import com.example.app1.music.MusicScreen
 import com.example.app1.music.SongInfo
 import com.example.app1.music.fetchLyrics
 import com.example.app1.music.formatTime
+import com.example.app1.music.performSearch
 import com.example.app1.pages.TodoListPage
 import com.example.app1.roomDb.Lazycolumn_1
 import com.example.app1.roomDb.viewModel.Lazycolumn_1ViewModel
@@ -1826,15 +1829,84 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     fun SearchScreen(navController: NavHostController) {
     var searchResults by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
     val db = FirebaseFirestore.getInstance()
-
-    // 搜索框组件
-    Column(modifier = Modifier.fillMaxSize()) {
-        CheckName(onSearch = { queryText ->
-            if (queryText.isNotEmpty()) {
+    var text by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf("影视") }
+    val categories = listOf("影视", "小说", "音乐")
+    var isVideo by remember { mutableStateOf(false) }
+    var isNovel by remember { mutableStateOf(false) }
+    var isAudio by remember { mutableStateOf(false) }
+        Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(text="搜索", fontSize = 10.sp) },
+                leadingIcon = {
+                   TextButton(onClick = {
+                        expanded = true
+                    }) {
+                        Row(){
+                            Text(text = selectedCategory)
+                            Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null)
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(onClick = {
+                                selectedCategory = category
+                                expanded = false
+                            }, text = { Text(category)})
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(60.dp)
+                    .padding(end = 8.dp)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(50.dp))
+                ,
+                maxLines = 1,
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent
+                )
+            )
+            TextButton(
+                onClick = {
+                    when (selectedCategory) {
+                        "影视" -> {
+                            isVideo = true
+                        }
+                        "小说" -> {
+                            isNovel = true
+                        }
+                        "音乐" -> {
+                            isAudio = true
+                        }
+                    }
+                },
+                modifier = Modifier.height(56.dp)
+            ) {
+                Text("搜索")
+            }
+        }
+        LaunchedEffect(isVideo) {
+            if (text.isNotEmpty()) {
                 db.collection("港剧")
                     .orderBy("name")
-                    .startAt(queryText)
-                    .endAt(queryText + "\uf8ff") // 使用模糊搜索
+                    .startAt(text)
+                    .endAt(text + "\uf8ff") // 使用模糊搜索
                     .get()
                     .addOnSuccessListener { documents ->
                         val videos = documents.map { document ->
@@ -1859,9 +1931,12 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                     .addOnFailureListener { exception ->
                         Log.w("Firestore", "Error getting documents: ", exception)
                     }
+            } else {
+                searchResults= emptyList()
             }
-        })
-
+        }
+        LaunchedEffect(isNovel) { }
+        LaunchedEffect(isAudio) { }
         // 搜索结果展示
         LazyColumn {
             items(searchResults) { video ->
@@ -1872,7 +1947,47 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     }
 }
-
+    //GetVedio
+    @Composable
+    fun getVideo(queryText: String): State<List<VideoDescription>> {
+        val db = FirebaseFirestore.getInstance()
+        val searchResults = remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+        LaunchedEffect(queryText) {
+            if (queryText.isNotEmpty()) {
+                db.collection("港剧")
+                    .orderBy("name")
+                    .startAt(queryText)
+                    .endAt(queryText + "\uf8ff") // 使用模糊搜索
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        val videos = documents.map { document ->
+                            VideoDescription(
+                                name = document.getString("name") ?: "",
+                                type = document.getString("type") ?: "",
+                                pic = document.getString("pic") ?: "",
+                                lang = document.getString("lang") ?: "",
+                                area = document.getString("area") ?: "",
+                                year = document.getString("year") ?: "",
+                                note = document.getString("note") ?: "",
+                                actor = document.getString("actor") ?: "",
+                                director = document.getString("director") ?: "",
+                                videoUrl = document.get("videoUrl") as? List<String> ?: emptyList(),
+                                dianzanCounts = 0,
+                                collectCounts = 0
+                            )
+                        }
+                        searchResults.value = videos // 更新搜索结果
+                        Log.d("Firestore", "Found ${videos.size} videos")
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.w("Firestore", "Error getting documents: ", exception)
+                    }
+            } else {
+                searchResults.value = emptyList()
+            }
+        }
+        return searchResults
+    }
     //示例
     fun fetchWebPageContent(url: String): String? {
         val client = OkHttpClient()

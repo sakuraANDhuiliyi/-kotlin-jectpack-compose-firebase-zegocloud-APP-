@@ -28,7 +28,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 
-@Composable
+    @Composable
     fun SongSearchScreen(songs:List<SongInfo>,navController: NavController) {
         Column(modifier = Modifier.padding(16.dp)) {
                 LazyColumn {
