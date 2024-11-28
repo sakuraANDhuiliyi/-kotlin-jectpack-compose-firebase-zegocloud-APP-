@@ -36,7 +36,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WebBrowser(modifier: Modifier) {
+fun WebBrowser() {
     var url by remember { mutableStateOf("https://www.yandex.com") }
     var webView by remember { mutableStateOf<WebView?>(null) }
     var textState by remember { mutableStateOf(TextFieldValue(url)) }

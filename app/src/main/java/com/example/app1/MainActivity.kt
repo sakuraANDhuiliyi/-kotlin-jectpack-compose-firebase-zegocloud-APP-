@@ -141,7 +141,6 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -189,7 +188,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -208,6 +206,7 @@ import com.example.app1.alarm.AlarmItem
 import com.example.app1.alarm.AndroidAlarmScheduler
 import com.example.app1.chatWithAI.ChatPage
 import com.example.app1.chatWithAI.ChatViewModel
+import com.example.app1.chatWithAI.NewChatPage
 import com.example.app1.chatWithUser.ChatActivity
 import com.example.app1.chatWithUser.UserProfilePage
 import com.example.app1.music.Lyric
@@ -429,7 +428,7 @@ class MainActivity : AppCompatActivity(){
                             composable("AiBot") {
                                     ChatPage(Modifier,chatViewModel)
                             }
-                            composable("web") { WebBrowser(modifier = Modifier) }
+                            composable("web") { WebBrowser() }
                             composable("map") { MapScreen() }
                             composable("biometricAuth") {
                                 BiometricAuthScreen(
@@ -1212,7 +1211,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     var index by remember { mutableIntStateOf(1)}
     var url = videoItem.videoUrl[videoIndex]
     // 用于AI消息输入
-    var aiMessage by remember { mutableStateOf("") }
     var fabVisible by remember { mutableStateOf(true) }
     val chatViewModel: ChatViewModel = viewModel()
     val isFullScreenRequested by viewModel.isFullScreenRequested.collectAsState()
@@ -1350,12 +1348,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 .fillMaxHeight(0.5f) // 设置弹窗高度为屏幕高度的80%
         ) {
             // 嵌套您的 ChatPage Composable
-            ChatPage(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxSize(),
-               chatViewModel
-            )
+            NewChatPage(chatViewModel)
         }
     }
 }
