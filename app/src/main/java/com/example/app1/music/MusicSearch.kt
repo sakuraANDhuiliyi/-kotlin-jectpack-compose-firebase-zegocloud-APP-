@@ -1,7 +1,6 @@
 package com.example.app1.music
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,7 +34,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 
-    @Composable
+@Composable
     fun SongSearchScreen(songs:List<SongInfo>,navController: NavController) {
         Column(modifier = Modifier.padding(16.dp)) {
                 LazyColumn {
@@ -79,18 +78,18 @@ import java.nio.charset.StandardCharsets
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val interactionSource = remember { MutableInteractionSource() }
+                    remember { MutableInteractionSource() }
                     var isClicked by remember { mutableStateOf(false) }
                     IconButton(onClick = {
                         isClicked = !isClicked
-                    }, modifier = Modifier.indication(interactionSource, null)) {
+                    }) {
                         Icon(
                             imageVector = if (!isClicked) Icons.Filled.FavoriteBorder else Icons.Filled.Favorite,
                             contentDescription = null,
                             modifier = Modifier.padding(end = 16.dp)
                         )
                     }
-                    IconButton(onClick = {},modifier = Modifier.indication(interactionSource, null)) {
+                    IconButton(onClick = {}) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = null,

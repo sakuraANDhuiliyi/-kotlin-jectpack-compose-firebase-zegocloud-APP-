@@ -189,6 +189,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -208,6 +209,7 @@ import com.example.app1.alarm.AndroidAlarmScheduler
 import com.example.app1.chatWithAI.ChatPage
 import com.example.app1.chatWithAI.ChatViewModel
 import com.example.app1.chatWithUser.ChatActivity
+import com.example.app1.chatWithUser.UserProfilePage
 import com.example.app1.music.Lyric
 import com.example.app1.music.MusicPlayerScreen
 import com.example.app1.music.MusicScreen
@@ -397,6 +399,7 @@ class MainActivity : AppCompatActivity(){
                             composable("demo"){ VideoUrlListScreen() }
                             composable("jsoup") { demo1() }
                             composable("main") { ChatMainScreen() }
+                            composable("usercard"){ UserProfilePage() }
                             composable("alarm") { alarm() }
                             composable("app") { OpenAppButton() }
                             composable("splash") { GifSplashScreen(navController = navController) }
@@ -1029,7 +1032,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 
 //评论区
     @Composable
-    fun CommentSection(videoItem: VideoDescription) {
+    fun CommentSection(videoItem: VideoDescription,navController: NavHostController) {
     val db = FirebaseFirestore.getInstance()
     var comments by remember { mutableStateOf(mutableListOf<Comment>()) }
     var commentText by remember { mutableStateOf(TextFieldValue()) }
@@ -1078,7 +1081,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 }
             } else {
                 items(comments) { comment ->
-                    CommentItem(comment)
+                    CommentItem(comment,navController)
                 }
             }
         }
@@ -1125,10 +1128,13 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 }
 
     @Composable
-    fun CommentItem(comment: Comment) {
+    fun CommentItem(comment: Comment,navController: NavHostController) {
     Row(modifier = Modifier
         .fillMaxWidth()
-        .padding(vertical = 8.dp)) {
+        .padding(vertical = 8.dp)
+        .clickable {
+            navController.navigate("usercard")
+        } ) {
         AsyncImage(
             model = comment.avatar,
             contentDescription = "用户头像",
@@ -1304,7 +1310,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                             }
                         }
                     )
-                    1 -> CommentSection(videoItem)
+                    1 -> CommentSection(videoItem,navController)
                 }
             }
         }
@@ -1598,7 +1604,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     }
 }
     //更多
-   @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MoreVideosScreen(navController: NavHostController, category: String) {
     val db = FirebaseFirestore.getInstance()
@@ -3396,13 +3402,10 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                                                 model = imageURL,
                                                 contentDescription = null,
                                                 modifier = Modifier
-                                                    .size(100.dp)
+                                                    .size(80.dp)
                                                     .clip(CircleShape)
-                                                    .border(
-                                                        1.5.dp,
-                                                        MaterialTheme.colorScheme.secondary,
-                                                        shape = CircleShape
-                                                    )
+                                                    .border(2.dp, Color.Gray, CircleShape),
+                                                contentScale = ContentScale.Crop
                                             )
                                         }
                                         Column(modifier = Modifier.fillMaxWidth(1f)) {
@@ -3536,12 +3539,8 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                                     modifier = Modifier
                                         .size(30.dp)
                                         .clip(CircleShape)
-                                        .border(
-                                            1.5.dp,
-                                            MaterialTheme.colorScheme.secondary,
-                                            shape = CircleShape
-                                        )
-
+                                        .border(2.dp, Color.Gray, CircleShape),
+                                    contentScale = ContentScale.Crop
                                 )
                             }
                         }
@@ -3723,13 +3722,10 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                                     model = imageURL,
                                     contentDescription = null,
                                     modifier = Modifier
-                                        .size(100.dp)
+                                        .size(80.dp)
                                         .clip(CircleShape)
-                                        .border(
-                                            1.5.dp,
-                                            MaterialTheme.colorScheme.secondary,
-                                            shape = CircleShape
-                                        )
+                                        .border(2.dp, Color.Gray, CircleShape),
+                                    contentScale = ContentScale.Crop
                                 )
                             }
                             Column(modifier = Modifier.fillMaxWidth(1f)) {
