@@ -1,4 +1,4 @@
-package com.example.app1
+package com.example.app1.chatWithAI
 
 import android.annotation.SuppressLint
 import android.webkit.WebView

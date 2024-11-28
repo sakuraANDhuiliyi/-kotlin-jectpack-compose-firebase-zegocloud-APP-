@@ -25,7 +25,6 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -35,7 +34,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,39 +65,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.twotone.Star
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.BasicAlertDialog
@@ -117,14 +108,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -136,7 +125,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -161,24 +149,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -186,7 +169,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -207,6 +189,7 @@ import com.example.app1.alarm.AndroidAlarmScheduler
 import com.example.app1.chatWithAI.ChatPage
 import com.example.app1.chatWithAI.ChatViewModel
 import com.example.app1.chatWithAI.NewChatPage
+import com.example.app1.chatWithAI.WebBrowser
 import com.example.app1.chatWithUser.ChatActivity
 import com.example.app1.chatWithUser.UserProfilePage
 import com.example.app1.music.Lyric
@@ -218,8 +201,6 @@ import com.example.app1.music.fetchLyrics
 import com.example.app1.music.formatTime
 import com.example.app1.music.performSearch
 import com.example.app1.pages.TodoListPage
-import com.example.app1.roomDb.Lazycolumn_1
-import com.example.app1.roomDb.viewModel.Lazycolumn_1ViewModel
 import com.example.app1.roomDb.viewModel.TodoViewModel
 import com.example.app1.roomDb.viewModel.UserViewModel
 import com.example.app1.ui.theme.App1Theme
@@ -318,8 +299,8 @@ class MainActivity : AppCompatActivity(){
                 ) {
                     innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        NavHost(navController = navController, startDestination = "start") {
-                            composable("example"){LyricExample(32408263)}
+                        NavHost(navController = navController, startDestination = "example") {
+                            composable("example"){ getUserName() }
                             composable("start"){ StartScreen(navController) }
                             composable("thumbUpList"){ThumbUpList(navController)}
                             composable("collectList"){ CollectList(navController) }
@@ -408,8 +389,6 @@ class MainActivity : AppCompatActivity(){
                                     todoViewModel,
                                 )
                             }
-                            composable("menu") { MenuScreen(navController = navController) }
-                            composable("exam") { example(navController = navController) }
 //                            composable("login") {
 //                                LoginPage(
 //                                    navController = navController,
@@ -461,6 +440,12 @@ fun LyricExample(id: Long) {
             Text(text = "[${formatTime(lyric.timeInSeconds)}] ${lyric.text}")
         }
     }
+}
+@Composable
+fun getUserName(){
+    val context = LocalContext.current
+    val name = getLoggedInUsername(context)
+    Text(text = name)
 }
 
 //隐藏底部导航栏（路由带参数导致匹配不正确）
@@ -1029,7 +1014,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     }
 }
 
-//评论区
+    //评论区
     @Composable
     fun CommentSection(videoItem: VideoDescription,navController: NavHostController) {
     val db = FirebaseFirestore.getInstance()
@@ -2823,461 +2808,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             }
         }
 }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun MessageCard1(msg:Lazycolumn_1){
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = false,
-        )
-        var showBottomSheet by remember { mutableStateOf(false) }
-        var openDialog by remember { mutableStateOf(false) }
-        var isExpanded by remember { mutableStateOf(false) }
-        var textdemo by remember { mutableStateOf("") }
-        var selectedImageUri by remember {
-            mutableStateOf<Uri?>(null)
-        }
-
-
-
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                modifier = Modifier.fillMaxHeight(),
-                sheetState = sheetState,
-                onDismissRequest = { showBottomSheet = false }
-            ) {
-                var scale by remember { mutableFloatStateOf(1f)}
-                var offset by remember { mutableStateOf(Offset.Zero) }
-                var rotation by remember { mutableFloatStateOf(1f) }
-                val clipboardManager: ClipboardManager = LocalClipboardManager.current
-                var showMenu by remember { mutableStateOf(false) }
-                var showMenu1 by remember { mutableStateOf(false) }
-                var menuPosition by remember { mutableStateOf(Offset.Zero) }
-                var selectedText by remember { mutableStateOf("") }
-                val density = LocalDensity.current
-                val dpMenuPosition = with(density) { DpOffset(menuPosition.x.toDp(), menuPosition.y.toDp()) }
-                val context = LocalContext.current
-
-                Card(shape = MaterialTheme.shapes.large,
-                    modifier = Modifier
-                        .fillMaxSize()
-                    ,
-                    elevation = CardDefaults.cardElevation(10.dp)){
-                    Box {
-                        SelectionContainer{
-                            Text(text = "You clicked the image of ${msg.body}: ", style = TextStyle(fontSize = 20.sp),
-                                modifier = Modifier.pointerInput(Unit){
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            showMenu = true
-                                            menuPosition=it
-                                            selectedText = msg.body
-                                        }
-                                    )
-                                })
-                        }
-                            DropdownMenu(showMenu, onDismissRequest = {showMenu = false}, offset = dpMenuPosition) {
-                                    DropdownMenuItem(text = { Text("复制") }, onClick = {clipboardManager.setText(
-                                        AnnotatedString(selectedText)
-                                    )
-                                        showMenu = false})
-                                    DropdownMenuItem(text = { Text("分享") }, onClick = {
-                                        showMenu = false
-                                        try {
-                                            val intent = Intent(Intent.ACTION_MAIN)
-                                            intent.addCategory(Intent.CATEGORY_LAUNCHER)
-                                            intent.component = ComponentName("com.tencent.mm", "com.tencent.mm.ui.LauncherUI")
-                                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-
-                                            val appStoreIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.tencent.mm"))
-                                            context.startActivity(appStoreIntent)
-                                        }
-                                })
-                            }
-
-                    }
-                    BoxWithConstraints(modifier = Modifier
-                        .fillMaxWidth()
-                        , contentAlignment = Alignment.Center) {
-                        val state =
-                            rememberTransformableState { zoomChange, panChange, rotationChange ->
-                                scale = (scale * zoomChange).coerceIn(1f, 5f)
-                                //rotation += rotationChange
-                                val extraWidth = (scale - 1) * constraints.maxWidth
-                                val extraHeight = (scale - 1) * constraints.maxHeight
-                                val maxx = extraWidth / 2
-                                val maxy = extraHeight / 2
-                                offset = Offset(
-                                    x = (offset.x + scale * panChange.x).coerceIn(-maxx, maxx),
-                                    y = (offset.y + scale * panChange.y).coerceIn(-maxy, maxy)
-                                )
-
-                            }
-
-                        AsyncImage(model = msg.imageURL,contentDescription = null
-                            , modifier = Modifier
-                                .size(150.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    1.5.dp,
-                                    MaterialTheme.colorScheme.secondary,
-                                    shape = CircleShape
-                                )
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    scaleX = scale
-                                    scaleY = scale
-                                    translationX = offset.x
-                                    translationY = offset.y
-                                }
-                                .transformable(state)
-                                )
-                    }
-                    Box {
-                        SelectionContainer{
-                            Text(text = msg.descriptionfuite, style = TextStyle(fontSize = 20.sp),
-                                modifier = Modifier.pointerInput(Unit){
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            showMenu1 = true
-                                            menuPosition=it
-                                            selectedText = msg.descriptionfuite
-                                        }
-                                    )
-                                })
-                        }
-                        DropdownMenu(showMenu1, onDismissRequest = {showMenu1 = false}, offset = dpMenuPosition) {
-                            DropdownMenuItem(text = { Text("复制") }, onClick = {clipboardManager.setText(
-                                AnnotatedString(selectedText)
-                            )
-                                showMenu1 = false})
-                            DropdownMenuItem(text = { Text("分享") }, onClick = {
-                                showMenu1 = false
-                                try {
-                                    val intent = Intent(Intent.ACTION_MAIN)
-                                    intent.addCategory(Intent.CATEGORY_LAUNCHER)
-                                    intent.component = ComponentName("com.tencent.mobileqq", "com.tencent.mobileqq.activity.SplashActivity")
-                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    val appStoreIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.tencent.mobileqq"))
-                                    context.startActivity(appStoreIntent)
-                                }
-                            })
-                        }
-
-                    }
-
-                }
-
-            }
-        }
-        if (openDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    openDialog = false
-                },
-
-                text = {
-                    Text(text = textdemo)
-                },
-
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            openDialog = false
-                        }
-                    ) {
-                        Text("确认")
-                    }
-                },
-                dismissButton = {
-                    Button(
-                        onClick = {
-                            openDialog = false
-                        }
-                    ) {
-                        Text("取消")
-                    }
-                }
-            )
-        }
-        Card(
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .fillMaxSize()
-                .height(150.dp)
-                .clickable {
-                    isExpanded = !isExpanded
-                    openDialog = true
-                    textdemo = msg.body
-                }
-                .padding(horizontal = 10.dp),
-            elevation = CardDefaults.cardElevation(10.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .height(150.dp)
-                    .fillMaxSize()
-            ) {
-                AsyncImage(model =msg.imageURL,contentDescription = null
-                    , modifier = Modifier
-                        .size(150.dp)
-                        .clip(CircleShape)
-                        .border(1.5.dp, MaterialTheme.colorScheme.secondary, shape = CircleShape)
-                        .clickable {
-                            showBottomSheet = true
-                            textdemo = "You clicked the image of ${msg.author}"
-                        })
-                Row {
-                    Text(
-                        text =msg.author,
-                        modifier = Modifier
-                            .clickable(onClick = {
-                                isExpanded = !isExpanded
-                                openDialog = true
-                                textdemo = msg.author
-                            })
-                            .size(150.dp)
-                            .padding(45.dp),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = msg.body,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                        modifier = Modifier
-                            .animateContentSize()
-                            .clickable(onClick = {
-                                openDialog = true
-                                textdemo = msg.body
-                            })
-                            .padding(vertical = 45.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun LazyMessCard1(viewModel: Lazycolumn_1ViewModel,searchText: String){
-    var author by remember { mutableStateOf("") }
-    var body by remember { mutableStateOf("") }
-    var imageURL by remember { mutableStateOf("") }
-    var fuiteName by remember { mutableStateOf("") }
-    var descriptionfuite by remember { mutableStateOf("") }
-    val lazyMessages =Lazycolumn_1(author,body,imageURL, fuiteName, descriptionfuite)
-    var lazyMessageList by remember {
-        mutableStateOf(listOf<Lazycolumn_1>())
-    }
-    viewModel.getMessages().observe(LocalLifecycleOwner.current){
-        lazyMessageList=it
-    }
-    var showDialog by remember { mutableStateOf(false) }
-    val filteredMessages = lazyMessageList.filter {messages ->
-        messages.author.contains(searchText, ignoreCase = true) || messages.body.contains(
-            searchText,
-            ignoreCase = true
-        )
-    }
-    var isRefreshing by remember { mutableStateOf(false) }
-    val scope= rememberCoroutineScope()
-
-    var selectedImageUri by remember {
-        mutableStateOf<Uri?>(null)
-    }
-        val context = LocalContext.current
-        val singleImagePckerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = {
-                uri ->
-            if (uri != null) {
-                selectedImageUri = uri
-                val savedImagePath = saveImageToInternalStorage(context, uri)
-                if (savedImagePath != null) {
-                    imageURL = savedImagePath
-                }
-            }
-
-        },
-    )
-
-        Box(modifier = Modifier.fillMaxSize()) {
-        PullToRefreshLazyColumn(items = filteredMessages,
-            content = {
-                    lazyMessages ->
-                SwipeToDeleteContainer(item = lazyMessages,
-                    onDelete ={viewModel.deleteMessages(lazyMessages)}) {
-                    MessageCard1(lazyMessages)
-                }
-            },
-            isRefreshing=isRefreshing,
-            onRefreshing = {
-                scope.launch {
-                    isRefreshing=true
-                    delay(2000)
-                    isRefreshing=false
-                }
-            }
-
-        )
-        SmallFloatingActionButton(
-            onClick = {
-                showDialog = true
-            },
-            contentColor = MaterialTheme.colorScheme.secondary,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 10.dp)
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = null)
-        }
-        if (showDialog) {
-            Dialog(
-                onDismissRequest = { showDialog = false }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(450.dp)
-                        .background(Color.White),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(verticalArrangement = Arrangement.Center) {
-
-                        Text(text="请输入要输入的内容")
-                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                        val focusManager = LocalFocusManager.current
-                        TextField(
-                            value = author,
-                            maxLines = 1,
-                            onValueChange = { author = it },
-                            placeholder = {
-                                Text("姓名")
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                            ,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.moveFocus(FocusDirection.Down)
-                                }
-                            )
-                        )
-                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                        TextField(
-                            value = body,
-                            maxLines = 1,
-                            onValueChange = { body = it },
-                            placeholder = {
-                                Text("信息")
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                            ,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.moveFocus(FocusDirection.Down)
-                                })
-                        )
-                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                        TextField(
-                            value = imageURL,
-                            maxLines = 1,
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = {
-                                        singleImagePckerLauncher.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    }
-                                ) {
-                                    Icon(imageVector = Icons.Outlined.Add, null)
-                                }
-                            },
-                            onValueChange = { imageURL = it },
-
-                            placeholder = {
-                                Text("上传图片")
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                            ,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.moveFocus(FocusDirection.Down)
-                                })
-                        )
-                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                        TextField(
-                            value = fuiteName,
-                            maxLines = 1,
-                            onValueChange = { fuiteName = it },
-                            placeholder = {
-                                Text("外号")
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                            ,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.moveFocus(FocusDirection.Down)
-                                })
-                        )
-                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                        TextField(
-                            value = descriptionfuite,
-                            maxLines = 1,
-                            onValueChange = { descriptionfuite = it },
-                            placeholder = {
-                                Text("爱好")
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                            ,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.clearFocus()
-                                })
-                        )
-                        Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                        Button(
-                            onClick = {
-                                viewModel.upsertMessages(lazyMessages)
-                                showDialog = false
-                                author=""
-                                body = ""
-                                imageURL =""
-                                fuiteName = ""
-                                descriptionfuite = ""
-                            },
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        ) {
-                            Text("确认添加")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-}
-
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun Page(navController: NavHostController,todoViewModel: TodoViewModel){
@@ -3349,10 +2879,22 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
         }) }
         var textmode by remember { mutableStateOf(if(!isGuest){
-            loadUserName(context) ?: "默认用户"
+            getLoggedInUsername(context)
         }else{
             "访客$guestName"
         }) }
+        val db = FirebaseFirestore.getInstance()
+        val userDocRef = db.collection("users").document(if(!isGuest) textmode else "sakura")
+        userDocRef.get().addOnSuccessListener { document ->
+            imageURL = if (document.exists()) {
+                // 获取 favoriteVideos 列表 (DocumentReference 类型)
+                (document.get("imageUrl") as? String).toString()
+            } else {
+                "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
+            }
+        }.addOnFailureListener { e ->
+            Log.w("Firebase", "Error fetching user document", e)
+        }
         var selectedImageUri by remember {
             mutableStateOf<Uri?>(null)
         }
@@ -3665,15 +3207,28 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         val isGuest = isGuestUser(context)
         val guestName = getUserId(context)
         var imageURL by remember { mutableStateOf(if(!isGuest){
-            getImagePath(context) ?: "\"https://truth.bahamut.com.tw/s01/201804/b34f037ab8301d4cd1331f686405b97a.JPG\""
+            getImagePath(context)
         }else{
             "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
         }) }
         var textmode by remember { mutableStateOf(if(!isGuest){
-            loadUserName(context) ?: "默认用户"
+            getLoggedInUsername(context)
         }else{
             "访客$guestName"
         }) }
+        val db = FirebaseFirestore.getInstance()
+        val userDocRef = db.collection("users").document(if(!isGuest) textmode else "sakura")
+        userDocRef.get().addOnSuccessListener { document ->
+            imageURL = if (document.exists()) {
+                // 获取 favoriteVideos 列表 (DocumentReference 类型)
+                (document.get("imageUrl") as? String).toString()
+            } else {
+                "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
+            }
+        }.addOnFailureListener { e ->
+            Log.w("Firebase", "Error fetching user document", e)
+        }
+
         var selectedImageUri by remember {
             mutableStateOf<Uri?>(null)
         }
@@ -4147,307 +3702,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         )
     }
 }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun MessageCard(msg: Message,navController: NavHostController) {
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = false,
-        )
-        var showBottomSheet by remember { mutableStateOf(false) }
-        val openDialog = remember { mutableStateOf(false) }
-        var isExpanded by remember { mutableStateOf(false) }
-        var textdemo by remember { mutableStateOf("") }
-        val imageRes = when (msg.imageURL) {
-            "one" -> R.drawable.one
-            "two" -> R.drawable.two
-            "three" -> R.drawable.three
-            "four" -> R.drawable.four
-            "five" -> R.drawable.five
-            "six" -> R.drawable.six
-            "seven" -> R.drawable.seven
-            "eight" -> R.drawable.eight
-            "nine"  -> R.drawable.first
-            else -> R.drawable.first
-        }
-        if (openDialog.value) {
-            AlertDialog(
-                onDismissRequest = {
-                    openDialog.value = false
-                },
-
-                text = {
-                    Text(text = textdemo)
-                },
-
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            openDialog.value = false
-                        }
-                    ) {
-                        Text("确认")
-                    }
-                },
-                dismissButton = {
-                    Button(
-                        onClick = {
-                            openDialog.value = false
-                        }
-                    ) {
-                        Text("取消")
-                    }
-                }
-            )
-        }
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                modifier = Modifier.fillMaxHeight(),
-                sheetState = sheetState,
-                onDismissRequest = { showBottomSheet = false }
-            ) {
-                var scale by remember { mutableFloatStateOf(1f)}
-                var offset by remember { mutableStateOf(Offset.Zero) }
-                var rotation by remember { mutableFloatStateOf(1f) }
-
-                Card(shape = MaterialTheme.shapes.large,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        ,
-                    elevation = CardDefaults.cardElevation(10.dp)){
-                    Text(
-                        "You clicked the image of " + msg.author+": ",
-                        style = TextStyle(fontSize = 20.sp)
-
-                    )
-                    BoxWithConstraints(modifier = Modifier
-                        .fillMaxWidth()
-                        , contentAlignment = Alignment.Center) {
-                        val state =
-                            rememberTransformableState { zoomChange, panChange, rotationChange ->
-                                scale = (scale * zoomChange).coerceIn(1f, 5f)
-                                //rotation += rotationChange
-                                val extraWidth = (scale - 1) * constraints.maxWidth
-                                val extraHeight = (scale - 1) * constraints.maxHeight
-                                val maxx = extraWidth / 2
-                                val maxy = extraHeight / 2
-                                offset = Offset(
-                                    x = (offset.x + scale * panChange.x).coerceIn(-maxx, maxx),
-                                    y = (offset.y + scale * panChange.y).coerceIn(-maxy, maxy)
-                                )
-
-                            }
-                        Image(
-                            painter = painterResource(id = imageRes),
-                            contentDescription = msg.fuiteName,
-                            modifier = Modifier
-                                .size(150.dp)
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    scaleX = scale
-                                    scaleY = scale
-                                    translationX = offset.x
-                                    translationY = offset.y
-                                }
-                                .transformable(state))
-
-                    }
-                    Text(text = msg.descriptionfuite)
-                }
-
-            }
-        }
-        Card(
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .fillMaxSize()
-                .height(150.dp)
-                .clickable {
-                    isExpanded = !isExpanded
-                    openDialog.value = true
-                    textdemo = msg.author
-                }
-                .padding(horizontal = 10.dp),
-            elevation = CardDefaults.cardElevation(10.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .height(150.dp)
-                    .fillMaxSize()
-            ) {
-                Image(
-                    painter = painterResource(id = imageRes),
-                    contentDescription = msg.fuiteName,
-                    modifier = Modifier
-                        .size(150.dp)
-                        .clip(CircleShape)
-                        .border(1.5.dp, MaterialTheme.colorScheme.secondary, shape = CircleShape)
-                        .clickable {
-                            openDialog.value = false
-                            showBottomSheet = true
-                            textdemo = "You clicked the image of " + msg.author
-                        }
-                )
-
-                Row {
-                    Text(
-                        text = msg.author,
-
-                        modifier = Modifier
-                            .clickable(onClick = {
-                                isExpanded = !isExpanded
-                                openDialog.value = true
-                                textdemo = msg.author
-                            })
-                            .size(150.dp)
-                            .padding(45.dp),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = msg.body,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                        modifier = Modifier
-                            .animateContentSize()
-                            .clickable(onClick = {
-                                openDialog.value = true
-                                textdemo = msg.body
-                            })
-                            .padding(vertical = 45.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun LazyMessageCara(messages: List<Message>, searchText: String,navController: NavHostController) {
-        var showDialog by remember { mutableStateOf(false) }
-        var showBottomSheet by remember { mutableStateOf(false) }
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = false,
-        )
-
-        var filteredMessages = messages.filter {
-            it.author.contains(searchText, ignoreCase = true) || it.body.contains(
-                searchText,
-                ignoreCase = true
-            )
-        }
-        var isRefreshing by remember { mutableStateOf(false) }
-        val scope= rememberCoroutineScope()
-        val itemCount= filteredMessages.size
-        Box(modifier = Modifier.fillMaxSize()) {
-            PullToRefreshLazyColumn(items = filteredMessages,
-                content = {
-                    message ->
-                        SwipeToDeleteContainer(item = message,
-                                                onDelete ={filteredMessages -= message}) {
-                            MessageCard(msg = message,navController)
-
-                        }
-                    },
-                isRefreshing=isRefreshing,
-                onRefreshing = {
-                    scope.launch {
-                        isRefreshing=true
-                        delay(2000)
-                        isRefreshing=false
-                    }
-                }
-
-            )
-            SmallFloatingActionButton(
-                onClick = {
-
-                },
-                contentColor = MaterialTheme.colorScheme.secondary,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 10.dp)
-            ) {
-                Icon(Icons.Outlined.Place, contentDescription = null)
-            }
-    }
-            Box(modifier = Modifier.fillMaxSize()) {
-                BadgedBox(
-                    badge = {
-                        if (itemCount > 0) {
-                            Badge(
-                                containerColor = Color.Red,
-                                contentColor = Color.White
-                            ) {
-                                Text("$itemCount")
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .clickable {
-                            showDialog = false
-                            showBottomSheet = false
-                            navController.navigate("exam")
-                        }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "cart",
-                    )
-                }
-                if (showBottomSheet) {
-                    ModalBottomSheet(
-                        modifier = Modifier.fillMaxHeight(),
-                        sheetState = sheetState,
-                        onDismissRequest = { showBottomSheet = false }
-                    ) {
-
-                        LazyMessageCara(
-                            messages = MsgData.messages,
-                            searchText = searchText,
-                            navController = navController
-                        )
-                    }
-                }
-                if (showDialog) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            showDialog = false
-                        },
-
-                        text = {
-                            Text(text = "查看")
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    showDialog = false
-                                }
-                            ) {
-                                Text("确认")
-                            }
-                        },
-                        dismissButton = {
-
-                            Button(
-                                onClick = {
-                                    showDialog = false
-                                }
-                            ) {
-                                Text("取消")
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    
-    
     @Composable
     fun ButtonNavigtion(navController: NavHostController, modifier: Modifier = Modifier) {
 
@@ -4541,283 +3795,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun NavDrawer(navController: NavHostController,viewModel: Lazycolumn_1ViewModel){
-        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-        val scope = rememberCoroutineScope()
-        var searchText by remember { mutableStateOf("") }
-        var showDialog by remember { mutableStateOf(false) }
-        var showBottomSheet by remember { mutableStateOf(false) }
-        val sheetState = rememberModalBottomSheetState(
-            skipPartiallyExpanded = false,
-        )
-        val context = LocalContext.current
-        var imageURL by remember { mutableStateOf("") }
-        var textmode by remember { mutableStateOf("默认用户") }
-        var selectedImageUri by remember {
-            mutableStateOf<Uri?>(null)
-        }
-        val singleImagePckerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = {
-                    uri ->
-                if (uri != null) {
-                    selectedImageUri = uri
-                    val savedImagePath = saveImageToInternalStorage(context, uri)
-                    if (savedImagePath != null) {
-                        imageURL = savedImagePath
-                        saveImagePath(context, savedImagePath)
-                    }
-                }
-
-            },
-        )
-
-
-        ModalNavigationDrawer(drawerContent = {
-            ModalDrawerSheet {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    var todoString by remember { mutableStateOf("") }
-                    var showdialog by remember { mutableStateOf(false) }
-                    var showdialog2 by remember { mutableStateOf(false) }
-                    var selected by remember { mutableStateOf(false) }
-
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                                .background(Color.Cyan)
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Row(modifier = Modifier.fillMaxSize()) {
-                                    Column {
-                                        AsyncImage(
-                                            model = imageURL,
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .size(100.dp)
-                                                .clip(CircleShape)
-                                                .border(
-                                                    1.5.dp,
-                                                    MaterialTheme.colorScheme.secondary,
-                                                    shape = CircleShape
-                                                )
-                                        )
-                                    }
-                                    Column(modifier = Modifier.fillMaxWidth(1f)) {
-                                        IconButton(
-                                            onClick =
-                                            {
-                                                singleImagePckerLauncher.launch(
-                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                                )
-                                            }, modifier = Modifier
-                                                .size(30.dp)
-                                                .align(Alignment.End)
-                                        ) {
-                                            Icon(Icons.Default.Edit, contentDescription = null)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                                .background(Color.Cyan)
-                                .padding(vertical = 5.dp)
-                        ) {
-                            Row {
-                                Text(text = textmode, modifier = Modifier
-                                    .clickable {
-                                        showdialog = true
-                                    }
-                                    .padding(horizontal = 20.dp), fontSize = 20.sp)
-                                IconButton(
-                                    onClick = {
-                                        showdialog = true
-                                    }, modifier = Modifier
-                                        .size(20.dp)
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                }
-                            }
-                            Spacer(modifier = Modifier
-                                .padding(vertical = 5.dp)
-                                .background(Color.Cyan))
-                            Text(text = "永远相信美好的事情即将发生", modifier = Modifier
-                                .clickable {
-                                }, fontSize = 10.sp
-                            )
-
-                        }
-                    }
-                   Column(modifier = Modifier
-                       .fillMaxSize(1f)
-                       .background(Color.Cyan)) {
-                       Box(modifier = Modifier.fillMaxSize()){
-                           Column {
-                               Button(
-                                   onClick = {
-                                       showdialog2 = true
-                                   },
-                                   modifier = Modifier
-                                       .padding(end = 10.dp)
-                                       .align(Alignment.CenterHorizontally)
-                               ) {
-                                   Text(text = "添加代办")
-                               }
-                               LazyColumn(
-                                   modifier = Modifier
-                                       .fillMaxWidth()
-                                       .padding(8.dp)
-                               ) {
-
-                               }
-
-                           }
-
-                       }
-
-                   }
-                    if(showdialog){
-                        Dialog(onDismissRequest = {
-                            showdialog = false
-                        }) {
-                            Column(verticalArrangement = Arrangement.Center) {
-                                TextField(
-                                    value = textmode,
-                                    maxLines = 1,
-                                    onValueChange = { textmode = it },
-                                    placeholder = {
-                                        Text("输入您的用户名")
-                                    },
-                                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    ,
-                                )
-                                Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                                Button(
-                                    onClick = {
-                                        showdialog = false
-                                    },
-                                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                                ) {
-                                    Text("确认")
-                                }
-                            }
-                        }
-                    }
-                    if(showdialog2){
-                        Dialog(onDismissRequest = {
-                            showdialog2 = false
-                        }) {
-                            val NewLazyItem = TODoItem(todoString)
-                            Column(verticalArrangement = Arrangement.Center) {
-                                TextField(
-                                    value = todoString,
-                                    maxLines = 1,
-                                    onValueChange = { todoString = it },
-                                    placeholder = {
-                                        Text("添加代办")
-                                    },
-                                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                                    ,
-                                )
-                                Spacer(modifier = Modifier.padding(vertical = 5.dp))
-                                Button(
-                                    onClick = {
-                                    },
-                                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                                ) {
-                                    Text("确认")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }, modifier = Modifier, gesturesEnabled = false, drawerState = drawerState) {
-            Scaffold() {
-                paddingValues ->
-                    Box(modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)){
-                        Column {
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        drawerState.open()
-                                        }
-                                    }) {
-                                        Icon(Icons.Filled.Menu, null)
-                                    }
-                                CheckName(onSearch = { searchText = it })
-                                }
-                            Box() {
-                                if (showBottomSheet) {
-                                    ModalBottomSheet(
-                                        modifier = Modifier.fillMaxHeight(),
-                                        sheetState = sheetState,
-                                        onDismissRequest = { showBottomSheet = false }
-                                    ) {
-
-                                        LazyMessageCara(
-                                            messages = MsgData.messages,
-                                            searchText = searchText,
-                                            navController = navController
-                                        )
-                                    }
-                                }
-                                if (showDialog) {
-                                    AlertDialog(
-                                        onDismissRequest = {
-                                            showDialog = false
-                                        },
-
-                                        text = {
-                                            Text(text = "查看")
-                                        },
-                                        confirmButton = {
-                                            Button(
-                                                onClick = {
-                                                    showDialog = false
-                                                }
-                                            ) {
-                                                Text("确认")
-                                            }
-                                        },
-                                        dismissButton = {
-
-                                            Button(
-                                                onClick = {
-                                                    showDialog = false
-                                                }
-                                            ) {
-                                                Text("取消")
-                                            }
-                                        }
-                                    )
-                                }
-
-                                LazyMessCard1(viewModel, searchText)
-                            }
-                        }
-                    }
-            }
-        }
-    }
-    @Composable
-    fun MenuScreen(navController: NavHostController) {
-        var searchText by remember { mutableStateOf("") }
-        Column() {
-            LazyMessageCara(messages = MsgData.messages, searchText = searchText, navController = navController)
-        }
-    }
 
     @Composable
     fun GifSplashScreen(navController: NavHostController) {
@@ -4926,9 +3903,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             .padding(vertical = 200.dp)
             .fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth()) {
-
                 val focusManager = LocalFocusManager.current
-
                 TextField(
                     value = username,
                     onValueChange = {
@@ -4986,6 +3961,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             Column(modifier = Modifier.fillMaxWidth())  {
                 Button(onClick = {
                     viewModel.login(username, password)
+                    saveLoginInfo(context, username, password)
                     username = ""
                     password = ""
                     hasShownToast = false
@@ -4996,7 +3972,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                     if ( !hasShownToast) {
                         if (it) {
                             Toast.makeText(LocalContext.current, "登录成功", Toast.LENGTH_SHORT).show()
-                            saveLoginInfo(context, username, password)
                             navController.navigate("home")
                         } else {
                             Toast.makeText(LocalContext.current, "登录失败", Toast.LENGTH_SHORT).show()
@@ -5199,20 +4174,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
 
 
-    }
-    @Composable
-    fun lazyOne(messages: List<Message>,navController: NavHostController){
-        Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn {
-                items(messages) { message ->
-                    MessageCard(msg = message, navController=navController)
-                }
-            }
-        }
-    }
-    @Composable
-    fun example(navController: NavHostController){
-        lazyOne(messages = MsgData.messages, navController = navController)
     }
     @Composable
     fun LoveVideo(navController: NavHostController){
