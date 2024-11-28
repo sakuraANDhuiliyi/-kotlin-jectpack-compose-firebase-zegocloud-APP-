@@ -36,7 +36,7 @@ import coil.compose.AsyncImage
 import com.zegocloud.zimkit.common.ZIMKitRouter
 import com.zegocloud.zimkit.common.enums.ZIMKitConversationType
 
-
+@Preview
 @Composable
 fun UserProfilePage() {
         val userName = "sakura"
@@ -52,10 +52,10 @@ fun UserProfilePage() {
         .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-        Row(modifier = Modifier.fillMaxWidth()){
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.4f)
                     .padding(16.dp)
             ) {
                 // 用户头像
@@ -102,7 +102,7 @@ fun UserProfilePage() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-            ){
+            ) {
                 Row(
                     modifier = Modifier
                         .padding(16.dp)
@@ -115,7 +115,7 @@ fun UserProfilePage() {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Following",
+                            text = "关注",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -131,7 +131,7 @@ fun UserProfilePage() {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Followers",
+                            text = "粉丝",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -139,39 +139,43 @@ fun UserProfilePage() {
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 操作按钮
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 编辑按钮
-            TextButton(
-                onClick = {
-                    ZIMKitRouter.toMessageActivity(context,userName,
-                        ZIMKitConversationType.ZIMKitConversationTypePeer)
-                    isFollowed = true
-                },
-                modifier = Modifier.weight(1f)
+            // 操作按钮
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "关注")
+                // 编辑按钮
+                TextButton(
+                    onClick = {
+                        ZIMKitRouter.toMessageActivity(
+                            context, userName,
+                            ZIMKitConversationType.ZIMKitConversationTypePeer
+                        )
+                        isFollowed = !isFollowed
+                        Toast.makeText(
+                            context,
+                            if (isFollowed) "已关注" else "已取消关注",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = if (isFollowed) "已关注" else "关注")
+                }
+                TextButton(
+                    onClick = {
+                        if (isFollowed) {
+                            val intent = Intent(context, ChatActivity::class.java)
+                            context.startActivity(intent)
+                        } else {
+                            Toast.makeText(context, "请先关注", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "发消息")
+                }
             }
-            TextButton(
-                onClick = {
-                    if(isFollowed){
-                        val intent = Intent(context, ChatActivity::class.java)
-                        context.startActivity(intent)
-                    }else{
-                        Toast.makeText(context, "请先关注", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "发消息")
-            }
-        }
     }
-
 }
