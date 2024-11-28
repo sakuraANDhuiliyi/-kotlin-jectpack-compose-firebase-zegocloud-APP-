@@ -212,6 +212,7 @@ import com.example.app1.music.Lyric
 import com.example.app1.music.MusicPlayerScreen
 import com.example.app1.music.MusicScreen
 import com.example.app1.music.SongInfo
+import com.example.app1.music.SongItem
 import com.example.app1.music.fetchLyrics
 import com.example.app1.music.formatTime
 import com.example.app1.music.performSearch
@@ -1828,6 +1829,8 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     @Composable
     fun SearchScreen(navController: NavHostController) {
     var searchResults by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
+    var songInfoList by remember { mutableStateOf<List<SongInfo>>(emptyList()) }
+    var novels by remember { mutableStateOf<List<XiaoShuo>>(emptyList()) }
     val db = FirebaseFirestore.getInstance()
     var text by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
@@ -1836,6 +1839,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     var isVideo by remember { mutableStateOf(false) }
     var isNovel by remember { mutableStateOf(false) }
     var isAudio by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
         Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -1886,13 +1890,13 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 onClick = {
                     when (selectedCategory) {
                         "影视" -> {
-                            isVideo = true
+                            isVideo = !isVideo
                         }
                         "小说" -> {
-                            isNovel = true
+                            isNovel = !isNovel
                         }
                         "音乐" -> {
-                            isAudio = true
+                            isAudio = !isAudio
                         }
                     }
                 },
@@ -1935,13 +1939,48 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 searchResults= emptyList()
             }
         }
-        LaunchedEffect(isNovel) { }
-        LaunchedEffect(isAudio) { }
+        LaunchedEffect(isNovel) {
+                val baseUrl = "https://www.biquges.cc/search.php?q=$text&p=1"
+                val html = fetchWebPageContentSuspend(baseUrl)
+                if (html != null) {
+                    // 提取当前页的小说内容
+                    val newNovels = extractArticles(html)
+                    // 追加新的小说内容到现有列表
+                    novels = novels + newNovels
+                }
+        }
+        LaunchedEffect(isAudio) {
+            performSearch(
+                query = text,
+                onSuccess = { results ->
+                    songInfoList = results
+                },
+                onError = {
+                },
+                setLoading = {
+                },
+                coroutineScope = coroutineScope
+            )
+        }
         // 搜索结果展示
         LazyColumn {
-            items(searchResults) { video ->
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    VideoDescription(video, navController)
+            when (selectedCategory) {
+                "影视" -> {
+                    items(searchResults) { video ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            VideoDescription(video, navController)
+                        }
+                    }
+                }
+                "小说" -> {
+                    items(novels) { novel ->
+                        NovelCard(xiaoShuo = novel, navController = navController)
+                    }
+                }
+                "音乐" -> {
+                    items(songInfoList) { song ->
+                        SongItem(song = song, navController = navController)
+                    }
                 }
             }
         }
@@ -1977,7 +2016,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         // 解析封面图片
         val imgElement: Element? = novelElement.selectFirst("dt img[src]")
         val coverImageUrl: String = imgElement?.attr("src") ?: ""
-
         // 解析小说名称和分类
         val titleElement: Element? = novelElement.selectFirst("dd h3 a")
         val name: String = titleElement?.text() ?: ""
