@@ -2,8 +2,9 @@ package com.example.app1
 
 import android.content.Context
 import android.net.Uri
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import android.util.Log
+
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.io.FileOutputStream
 
@@ -24,14 +25,41 @@ fun saveImageToInternalStorage(context: Context, uri: Uri): String? {
     }
 }
 fun saveImagePath(context: Context, imagePath: String) {
+    val currentUserName = getLoggedInUsername(context)
     val sharedPreferences = context.getSharedPreferences("image_pref", Context.MODE_PRIVATE)
     val editor = sharedPreferences.edit()
+    val db = FirebaseFirestore.getInstance()
+    val userDocRef = db.collection("users").document(currentUserName)
     editor.putString("image_path", imagePath)
     editor.apply()
+    userDocRef.update("imageUrl",imagePath )
+        .addOnSuccessListener {
+            Log.d("Firebase", "Image URL successfully updated!")
+        }
+        .addOnFailureListener { e ->
+            Log.w("Firebase", "Error updating image URL", e)
+        }.addOnFailureListener { e ->
+    Log.w("Firebase", "Error fetching user document", e)
 }
-fun getImagePath(context: Context): String? {
-    val sharedPreferences = context.getSharedPreferences("image_pref", Context.MODE_PRIVATE)
-    return sharedPreferences.getString("image_path", "https://truth.bahamut.com.tw/s01/201804/b34f037ab8301d4cd1331f686405b97a.JPG")
+
+}
+//无法获取图片url，感觉是因为初始化的问题，，，哦，可以获取，就是延迟更新
+fun getImagePath(context: Context): String {
+    val currentUserName = getLoggedInUsername(context)
+    val db = FirebaseFirestore.getInstance()
+    val userDocRef = db.collection("users").document(currentUserName)
+    var imageURL = "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
+    userDocRef.get().addOnSuccessListener { document ->
+       imageURL = if (document.exists()) {
+            // 获取 favoriteVideos 列表 (DocumentReference 类型)
+            (document.get("imageUrl") as? String).toString()
+        } else {
+            "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
+        }
+    }.addOnFailureListener { e ->
+        Log.w("Firebase", "Error fetching user document", e)
+    }
+    return imageURL
 }
 
 
@@ -42,7 +70,3 @@ fun saveUserName(context: Context, userName: String) {
     editor.apply()
 }
 
-fun loadUserName(context: Context): String? {
-    val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-    return sharedPreferences.getString("user_name", "默认用户")
-}

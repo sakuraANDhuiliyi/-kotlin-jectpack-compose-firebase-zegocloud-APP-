@@ -1,11 +1,9 @@
 package com.example.app1.roomDb.viewModel
 
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.app1.User
-import com.example.app1.saveLoginInfo
 import com.google.firebase.firestore.FirebaseFirestore
 
 class UserViewModel : ViewModel() {
@@ -34,8 +32,6 @@ class UserViewModel : ViewModel() {
                 _loginResult.value = false
             }
     }
-
-    // 注册功能：将新用户信息存储到 Firestore
     fun register(username: String, password: String) {
         // 首先检查用户名是否已经存在
         firestore.collection("users")

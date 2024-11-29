@@ -244,6 +244,7 @@ class MainActivity : AppCompatActivity(){
                 val chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
                 val navController = rememberNavController()
                 val db = FirebaseFirestore.getInstance()
+                val currentName = getLoggedInUsername(context = LocalContext.current)
                 var videoList by remember { mutableStateOf<List<VideoDescription>>(emptyList()) }
                 LaunchedEffect(Unit) {
                     try {
@@ -299,7 +300,7 @@ class MainActivity : AppCompatActivity(){
                 ) {
                     innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        NavHost(navController = navController, startDestination = "example") {
+                        NavHost(navController = navController, startDestination = "start") {
                             composable("example"){ getUserName() }
                             composable("start"){ StartScreen(navController) }
                             composable("thumbUpList"){ThumbUpList(navController)}
@@ -379,7 +380,7 @@ class MainActivity : AppCompatActivity(){
                             composable("demo"){ VideoUrlListScreen() }
                             composable("jsoup") { demo1() }
                             composable("main") { ChatMainScreen() }
-                            composable("usercard"){ UserProfilePage() }
+                            composable("usercard"){ UserProfilePage(currentName) }
                             composable("alarm") { alarm() }
                             composable("app") { OpenAppButton() }
                             composable("splash") { GifSplashScreen(navController = navController) }
@@ -423,24 +424,6 @@ class MainActivity : AppCompatActivity(){
             }
         }
     }
-@Composable
-fun LyricExample(id: Long) {
-    var lyricsList by remember { mutableStateOf<List<Lyric>>(emptyList()) }
-    LaunchedEffect(id) {
-        try {
-            val fetchedLyrics = fetchLyrics(id)
-            lyricsList = fetchedLyrics
-        } catch (e: Exception) {
-            // 处理错误
-            e.printStackTrace()
-        }
-    }
-    LazyColumn {
-        items(lyricsList) { lyric ->
-            Text(text = "[${formatTime(lyric.timeInSeconds)}] ${lyric.text}")
-        }
-    }
-}
 @Composable
 fun getUserName(){
     val context = LocalContext.current
@@ -1017,13 +1000,26 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     //评论区
     @Composable
     fun CommentSection(videoItem: VideoDescription,navController: NavHostController) {
+    val context = LocalContext.current
+    val currentName = getLoggedInUsername(context)
+    var imageURL by remember { mutableStateOf("") }
     val db = FirebaseFirestore.getInstance()
     var comments by remember { mutableStateOf(mutableListOf<Comment>()) }
     var commentText by remember { mutableStateOf(TextFieldValue()) }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val userDocRef = db.collection(videoItem.type).document("${videoItem.name}_${videoItem.year}")
-
+    val commentDocRef = db.collection("users").document(currentName)
+        commentDocRef.get().addOnSuccessListener { document ->
+            imageURL = if (document.exists()) {
+                // 获取 favoriteVideos 列表 (DocumentReference 类型)
+                (document.get("imageUrl") as? String).toString()
+            } else {
+                "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
+            }
+        }.addOnFailureListener { e ->
+            Log.w("Firebase", "Error fetching user document", e)
+        }
     // 获取 Firestore 中的评论数据
     LaunchedEffect(videoItem) {
         userDocRef.get().addOnSuccessListener { document ->
@@ -1071,7 +1067,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.Gray)
-
         // 输入框和发送按钮
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             BasicTextField(
@@ -1091,11 +1086,10 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 
             IconButton(onClick = {
                 if (commentText.text.isNotBlank()) {
-                    val newComment = Comment(username = "用户", content = commentText.text, avatar = "")
+                    val newComment = Comment(username = currentName, content = commentText.text, avatar = imageURL)
                     coroutineScope.launch {
                         comments.add(newComment)
                         commentText = TextFieldValue() // 清空输入框
-
                         // 更新 Firestore 中的评论
                         userDocRef.update("comments", FieldValue.arrayUnion(newComment.toMap()))
                             .addOnFailureListener { e ->
@@ -1110,10 +1104,9 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     }
 }
-
     @Composable
     fun CommentItem(comment: Comment,navController: NavHostController) {
-    Row(modifier = Modifier
+     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 8.dp)
         .clickable {
@@ -2742,7 +2735,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 
         }
     }
-
     @Composable
     fun alarm(){
         var secondsText by remember { mutableStateOf("") }
@@ -2790,7 +2782,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 
             }
         }
-
     fun checkAndRequestExactAlarmPermission(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -2874,7 +2865,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         val isGuest = isGuestUser(context)
         val guestName = getUserId(context)
         var imageURL by remember { mutableStateOf(if(!isGuest){
-            getImagePath(context) ?: "\"https://truth.bahamut.com.tw/s01/201804/b34f037ab8301d4cd1331f686405b97a.JPG\""
+            getImagePath(context)
         }else{
             "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
         }) }
@@ -3674,34 +3665,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             )
         )
     }
-    @Composable
-    fun CheckName(onSearch: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    Column {
-        TextField(
-            value = text,
-            onValueChange = {
-                text = it
-            },
-            label = {
-                Text(text = "搜索")
-            },
-            leadingIcon = {
-                IconButton(onClick = {
-                    onSearch(text)
-                }) {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent
-            )
-        )
-    }
-}
+
     @Composable
     fun ButtonNavigtion(navController: NavHostController, modifier: Modifier = Modifier) {
 

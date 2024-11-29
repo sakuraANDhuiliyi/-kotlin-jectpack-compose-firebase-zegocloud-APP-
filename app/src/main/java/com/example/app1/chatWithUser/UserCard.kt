@@ -1,6 +1,7 @@
 package com.example.app1.chatWithUser
 
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -33,19 +34,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.google.firebase.firestore.FirebaseFirestore
 import com.zegocloud.zimkit.common.ZIMKitRouter
 import com.zegocloud.zimkit.common.enums.ZIMKitConversationType
 
-@Preview
 @Composable
-fun UserProfilePage() {
-        val userName = "sakura"
-        val userBio = "躺平"
-        val userContact = "111111111111"
-        val followersCount = 100
-        val followingCount = 100
+fun UserProfilePage(currentName:String) {
+    val userBio = "躺平"
+    val userContact = "111111111111"
+    val followersCount = 100
+    val followingCount = 100
     val context = LocalContext.current
     var isFollowed by remember { mutableStateOf(true) }
+    var imageURL by remember { mutableStateOf("") }
+    val db = FirebaseFirestore.getInstance()
+    val userDocRef = db.collection("users").document(currentName)
+    userDocRef.get().addOnSuccessListener { document ->
+        imageURL = if (document.exists()) {
+            // 获取 favoriteVideos 列表 (DocumentReference 类型)
+            (document.get("imageUrl") as? String).toString()
+        } else {
+            "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg"
+        }
+    }.addOnFailureListener { e ->
+        Log.w("Firebase", "Error fetching user document", e)
+    }
         // 顶部内容：头像、用户名、简介等
     Column(modifier = Modifier
         .fillMaxSize()
@@ -60,7 +73,7 @@ fun UserProfilePage() {
             ) {
                 // 用户头像
                 AsyncImage(
-                    model = "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg",
+                    model = imageURL,
                     contentDescription = "User Avatar",
                     modifier = Modifier
                         .size(80.dp)
@@ -73,7 +86,7 @@ fun UserProfilePage() {
 
                 // 用户名
                 Text(
-                    text = userName,
+                    text = currentName,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
@@ -120,9 +133,7 @@ fun UserProfilePage() {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-
                     Spacer(modifier = Modifier.width(24.dp)) // 间隔
-
                     // 粉丝人数
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -149,7 +160,7 @@ fun UserProfilePage() {
                 TextButton(
                     onClick = {
                         ZIMKitRouter.toMessageActivity(
-                            context, userName,
+                            context, currentName,
                             ZIMKitConversationType.ZIMKitConversationTypePeer
                         )
                         isFollowed = !isFollowed
