@@ -1,8 +1,5 @@
 package com.example.app1.music
 
-import android.media.AudioAttributes
-import android.media.MediaPlayer
-import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -32,7 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -41,14 +37,12 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -56,7 +50,6 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,7 +181,7 @@ fun MusicPlayer(songInfo: SongInfo) {
             LaunchedEffect(songInfo.id) {
                 lyrics.value = fetchLyrics(songInfo.id) // 异步获取歌词
             }
-            MusicPlayerApp(songInfo.mp3Url,lyrics.value)
+            MusicPlayerApp(songInfo,lyrics.value)
         }
     }
 
@@ -196,15 +189,23 @@ fun MusicPlayer(songInfo: SongInfo) {
 
 @Composable
 fun MusicPlayerApp(
-    mp3url: String,
+    songInfo: SongInfo,
     lyrics: List<Lyric>?,
+    viewModel: MusicPlayerViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-    val viewModel :MusicPlayerViewModel = viewModel()
     // 收集 ViewModel 中的状态
     val isPlaying by viewModel.isPlaying.collectAsState()
     val currentTime by viewModel.currentTime.collectAsState()
     val progress by viewModel.progress.collectAsState()
+    // 记录当前 SongInfo 是否已经被播放
+    var isSongInitialized by remember { mutableStateOf(false) }
+    LaunchedEffect(songInfo) {
+        if (!isSongInitialized) {
+            viewModel.play(songInfo)
+            isSongInitialized = true
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -212,6 +213,16 @@ fun MusicPlayerApp(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // 显示歌曲标题
+        Text(
+            text = songInfo.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         lyrics?.let {
             Text(
                 text = getCurrentLyric(it, currentTime),
@@ -220,17 +231,23 @@ fun MusicPlayerApp(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
         }
+
         Spacer(modifier = Modifier.height(16.dp))
+
         Slider(
             value = progress,
             onValueChange = { newProgress ->
-                viewModel.seekTo(newProgress)
+                // 防止进度条值无效
+                if (!newProgress.isNaN() && newProgress in 0f..1f) {
+                    viewModel.seekTo(newProgress)
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             valueRange = 0f..1f,
             steps = 0
         )
         Spacer(modifier = Modifier.height(16.dp))
+
         // 控制按钮区
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -247,7 +264,7 @@ fun MusicPlayerApp(
                 if (isPlaying) {
                     viewModel.pause()
                 } else {
-                    viewModel.play(mp3url)
+                    viewModel.play(songInfo)
                 }
             }) {
                 Icon(

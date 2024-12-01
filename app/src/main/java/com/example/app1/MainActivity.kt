@@ -163,6 +163,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
@@ -459,43 +460,70 @@ fun BottomPlayerBar(modifier: Modifier = Modifier) {
             .height(60.dp) // 设置高度
             .background(Color(0xFFF5F5F5)) // 设置背景颜色
             .padding(horizontal = 16.dp, vertical = 8.dp),
-
         contentAlignment = Alignment.CenterStart
     ) {
         val context = LocalContext.current
         val songInfo = getSongInfo(context)
-        var rotation by remember { mutableFloatStateOf(0f) }
-        val viewModel : MusicPlayerViewModel = viewModel()
+        val viewModel: MusicPlayerViewModel = viewModel()
         val isPlaying by viewModel.isPlaying.collectAsState()
+        var expanded by remember { mutableStateOf(false) }
+        // 如果没有歌曲信息，不显示控制栏
+        if (songInfo == null) {
+            // 您可以选择显示一个默认的控制栏或完全不显示
+            // 这里选择不显示任何内容
+            return@Box
+        }
+        var delayTime by remember { mutableStateOf("") }
+        var rotation by remember { mutableFloatStateOf(0f) }
+        var isDialog by remember { mutableStateOf(false) }
         // 每隔16ms更新旋转角度，模拟持续旋转
-        LaunchedEffect(key1 = true) {
-            while (true) {
-                rotation += 1f // 每次递增1度
-                if (rotation >= 360f) {
-                    rotation = 0f // 角度达到360时重置
+        LaunchedEffect(key1 = isPlaying) {
+            if (isPlaying) {
+                while (isPlaying) {
+                    rotation += 1f // 每次递增1度
+                    if (rotation >= 360f) {
+                        rotation = 0f // 角度达到360时重置
+                    }
+                    delay(16) // 每16ms更新一次，形成平滑旋转
                 }
-                delay(16) // 每16ms更新一次，形成平滑旋转
             }
         }
+
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween // 左右分布
         ) {
             // 左侧专辑封面和标题
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f), // 使用 weight 确保文本和封面占据合理空间
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 AsyncImage(
-                        model = songInfo?.coverImageUrl ?: "",
-                        contentDescription = "Album Cover",
-                        modifier = Modifier
-                            .size(40.dp) // 设置封面大小
-                            .clip(CircleShape) // 裁剪为圆形
-                            .graphicsLayer(rotationZ = rotation)
-                    )
+                    model = songInfo.coverImageUrl, // 确保 coverImageUrl 非空
+                    contentDescription = "Album Cover",
+                    modifier = Modifier
+                        .size(40.dp) // 设置封面大小
+                        .clip(CircleShape) // 裁剪为圆形
+                        .graphicsLayer(rotationZ = rotation)
+                )
                 Spacer(modifier = Modifier.width(8.dp)) // 添加间距
-                Column {
-                    Text(text = songInfo?.name ?: "", fontSize = 16.sp)
-                    Text(text = songInfo?.albumName ?: "", fontSize = 12.sp, color = Color.Gray)
+                Column(
+                    modifier = Modifier.weight(1f) // 确保文本部分占据合理空间
+                ) {
+                    Text(
+                        text = songInfo.name,
+                        fontSize = 16.sp,
+                        maxLines = 1, // 限制最大行数为1行
+                        overflow = TextOverflow.Ellipsis // 超出部分使用省略号表示
+                    )
+                    Text(
+                        text = songInfo.albumName,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 1, // 限制最大行数为1行
+                        overflow = TextOverflow.Ellipsis // 超出部分使用省略号表示
+                    )
                 }
             }
             // 右侧播放控制和更多操作
@@ -504,7 +532,8 @@ fun BottomPlayerBar(modifier: Modifier = Modifier) {
                     if (isPlaying) {
                         viewModel.pause()
                     } else {
-                        viewModel.play(songInfo?.mp3Url?:"")
+                        // 确保 songInfo 不为 null，已在外部检查
+                        viewModel.play(songInfo)
                     }
                 }) {
                     Icon(
@@ -512,16 +541,71 @@ fun BottomPlayerBar(modifier: Modifier = Modifier) {
                         contentDescription = if (isPlaying) "暂停" else "播放"
                     )
                 }
-                IconButton(onClick = { /* 更多选项逻辑 */ }) {
+                IconButton(onClick = {
+                    expanded = !expanded
+                }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert, // 替换为更多操作图标
                         contentDescription = "More"
                     )
                 }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        onClick = { expanded = false },
+                        text = {
+                            Text(text = "收藏")
+                        })
+                    DropdownMenuItem(
+                        onClick = {
+                            expanded = false
+                            isDialog = true
+                        },
+                        text = {
+                            Text(text = "设置")
+                        })
+                    DropdownMenuItem(
+                        onClick = { expanded = false },
+                        text = {
+                            Text(text = "分享")
+                        })
+                }
+            }
+        }
+        if (isDialog) {
+            Dialog(onDismissRequest = { isDialog = false }) {
+                Column() {
+                    Text("设置定时关闭时间（分钟）")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // 输入框
+                    TextField(
+                        value = delayTime,
+                        onValueChange = {
+                            // 保证只输入整数
+                            delayTime = it
+                        },
+                        label = { Text("延迟时间") },
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(onClick = {
+                        Toast.makeText(context, "音乐将在 $delayTime 分钟后停止", Toast.LENGTH_SHORT).show()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            delay((delayTime.toInt() * 60000).toLong()) // 延迟时间 (单位：秒)
+                            viewModel.pause() // 调用 ViewModel 中的 pause 函数来停止播放
+                        }
+                        isDialog = false
+                    }) {
+                        Text(text = "设置")
+                    }
+                }
             }
         }
     }
 }
+
 //隐藏底部导航栏（路由带参数导致匹配不正确）
 fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Boolean {
     if (currentRoute == null) return true
@@ -1393,7 +1477,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 
         // AI消息输入对话框
        if (showAiDialog) {
-    Dialog(
+         Dialog(
         onDismissRequest = {
             showAiDialog = false
             index *= -1

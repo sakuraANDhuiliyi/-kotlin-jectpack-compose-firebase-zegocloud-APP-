@@ -53,7 +53,6 @@ import java.nio.charset.StandardCharsets
             // URL 编码，确保字符串在 URL 中安全传输
             val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
             // 导航到 MusicPlayerScreen， 并传递序列化的 SongInfo
-            saveSongInfo(context,song)
             navController.navigate("musicPlayer/$encodedSongJson")
         }) {
             Row(

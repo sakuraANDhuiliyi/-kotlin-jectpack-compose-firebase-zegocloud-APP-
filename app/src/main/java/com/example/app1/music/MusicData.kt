@@ -38,10 +38,11 @@ data class SongInfo(
 )
 
 
-data class Lrc(
-    val lyric: String? = null
-)
 data class Lyric(
     val timeInSeconds: Float, // 歌词时间，以秒为单位
     val text: String // 歌词文本
+)
+data class PlaybackInfo(
+    val currentPosition: Int, // 当前播放位置，单位毫秒
+    val isPlaying: Boolean // 当前是否在播放
 )

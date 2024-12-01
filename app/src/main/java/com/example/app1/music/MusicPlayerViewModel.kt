@@ -1,11 +1,13 @@
 package com.example.app1.music
 
 import android.app.Application
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MusicPlayerViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val context = getApplication<Application>().applicationContext
+    private val context: Context = getApplication<Application>().applicationContext
 
     private var mediaPlayer: MediaPlayer? = null
 
@@ -29,20 +31,36 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private val _progress = MutableStateFlow(0f)
     val progress: StateFlow<Float> = _progress
 
-    // 当前播放的URL
-    private var currentUrl: String? = null
+    // 当前播放的歌曲信息
+    private var currentSongInfo: SongInfo? = null
+
+    // Gson 实例
+    private val gson = Gson()
+
+    init {
+        // 应用启动时恢复播放状态和歌曲信息
+        restorePlaybackInfo()
+        restoreSongInfo()
+    }
+
+    // 保存歌曲信息
+    private fun saveSongInfo(songInfo: SongInfo) {
+        currentSongInfo = songInfo
+        saveSongInfo(context, songInfo)
+    }
 
     // 初始化 MediaPlayer 并开始播放
-    fun play(mp3url: String) {
-        if (mp3url.isBlank()) {
+    fun play(songInfo: SongInfo) {
+        if (songInfo.mp3Url.isBlank()) {
             Toast.makeText(context, "URL不能为空", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // 如果当前URL与传入的不一致，或者MediaPlayer为null，重新初始化MediaPlayer
-        if (currentUrl != mp3url || mediaPlayer == null) {
-            currentUrl = mp3url
-            initializeMediaPlayer(mp3url)
+        // 如果当前歌曲与传入的不一致，或者MediaPlayer为null，重新初始化MediaPlayer
+        if (currentSongInfo?.mp3Url != songInfo.mp3Url || mediaPlayer == null) {
+            currentSongInfo = songInfo
+            saveSongInfo(songInfo)
+            initializeMediaPlayer(songInfo.mp3Url)
         } else {
             // 如果MediaPlayer已存在且未播放，则继续播放
             mediaPlayer?.let { player ->
@@ -50,15 +68,17 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
                     player.start()
                     _isPlaying.value = true
                     startProgressUpdater()
+                    savePlaybackInfo()
                 }
             }
         }
     }
 
     // 初始化MediaPlayer
-    private fun initializeMediaPlayer(mp3url: String) {
+    private fun initializeMediaPlayer(mp3url: String, seekPosition: Int = 0, shouldPlay: Boolean = true) {
         // 释放之前的MediaPlayer
         releaseMediaPlayer()
+
         viewModelScope.launch {
             try {
                 mediaPlayer = MediaPlayer().apply {
@@ -71,18 +91,26 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
                     setDataSource(mp3url)
                     prepareAsync()
                     setOnPreparedListener {
-                        start()
-                        _isPlaying.value = true
-                        startProgressUpdater()
+                        if (seekPosition > 0) {
+                            seekTo(seekPosition)
+                        }
+                        if (shouldPlay) {
+                            start()
+                            _isPlaying.value = true
+                            startProgressUpdater()
+                        }
+                        savePlaybackInfo()
                     }
                     setOnCompletionListener {
                         _isPlaying.value = false
                         releaseMediaPlayer()
+                        savePlaybackInfo()
                     }
                     setOnErrorListener { _, what, extra ->
                         Toast.makeText(context, "播放错误: what=$what, extra=$extra", Toast.LENGTH_SHORT).show()
                         _isPlaying.value = false
                         releaseMediaPlayer()
+                        savePlaybackInfo()
                         true
                     }
                 }
@@ -92,6 +120,7 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
+
     // 更新播放进度
     private fun startProgressUpdater() {
         viewModelScope.launch {
@@ -102,6 +131,7 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
                 }
                 delay(100) // 每100毫秒更新一次
             }
+            savePlaybackInfo()
         }
     }
 
@@ -111,6 +141,7 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
             if (player.isPlaying) {
                 player.pause()
                 _isPlaying.value = false
+                savePlaybackInfo()
             }
         }
     }
@@ -122,6 +153,7 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
                 player.stop()
                 _isPlaying.value = false
                 releaseMediaPlayer()
+                savePlaybackInfo()
             }
         }
     }
@@ -133,6 +165,7 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
             player.seekTo(newPosition)
             _progress.value = progress
             _currentTime.value = newPosition / 1000f
+            savePlaybackInfo()
         }
     }
 
@@ -145,5 +178,42 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
     override fun onCleared() {
         super.onCleared()
         releaseMediaPlayer()
+        savePlaybackInfo()
     }
+
+    // 保存播放信息到 SharedPreferences
+    private fun savePlaybackInfo() {
+        val playbackInfo = PlaybackInfo(
+            currentPosition = mediaPlayer?.currentPosition ?: 0,
+            isPlaying = _isPlaying.value
+        )
+        savePlaybackInfo(context, playbackInfo)
+    }
+
+    // 恢复播放信息
+    private fun restorePlaybackInfo() {
+        val playbackInfo = getPlaybackInfo(context)
+        playbackInfo?.let {
+            // 暂时存储恢复的播放信息，稍后在初始化 MediaPlayer 时使用
+            restoredPlaybackInfo = it
+        }
+    }
+
+    // 恢复歌曲信息
+    private fun restoreSongInfo() {
+        val songInfo = getSongInfo(context)
+        songInfo?.let {
+            currentSongInfo = it
+            // 恢复 MediaPlayer
+            val playbackInfo = restoredPlaybackInfo
+            initializeMediaPlayer(
+                mp3url = it.mp3Url,
+                seekPosition = playbackInfo?.currentPosition ?: 0,
+                shouldPlay = playbackInfo?.isPlaying ?: false
+            )
+        }
+    }
+
+    // 存储恢复的播放信息
+    private var restoredPlaybackInfo: PlaybackInfo? = null
 }

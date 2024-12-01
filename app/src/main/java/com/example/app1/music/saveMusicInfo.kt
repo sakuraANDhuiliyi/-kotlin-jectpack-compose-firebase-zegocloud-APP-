@@ -25,4 +25,22 @@ fun getSongInfo(context: Context): SongInfo? {
     }
 }
 
+fun savePlaybackInfo(context: Context, playbackInfo: PlaybackInfo) {
+    val sharedPreferences = context.getSharedPreferences("PlaybackInfo", Context.MODE_PRIVATE)
+    val editor = sharedPreferences.edit()
 
+    val playbackInfoJson = Gson().toJson(playbackInfo)
+    editor.putString("playbackInfo", playbackInfoJson)
+    editor.apply()
+}
+
+// 获取播放信息
+fun getPlaybackInfo(context: Context): PlaybackInfo? {
+    val sharedPreferences = context.getSharedPreferences("PlaybackInfo", Context.MODE_PRIVATE)
+    val playbackInfoJson = sharedPreferences.getString("playbackInfo", null)
+    return if (playbackInfoJson != null) {
+        Gson().fromJson(playbackInfoJson, PlaybackInfo::class.java)
+    } else {
+        null
+    }
+}
