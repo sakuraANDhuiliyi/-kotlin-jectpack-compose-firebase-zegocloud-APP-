@@ -30,6 +30,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.app1.chatWithAI.ChatPage
 import com.example.app1.chatWithAI.ChatViewModel
+import com.example.app1.chatWithAI.NewChatPage
+import com.example.app1.pages.TodoListPage
+import com.example.app1.roomDb.viewModel.TodoViewModel
 import kotlinx.coroutines.Job
 
 @RequiresApi(35)
@@ -143,7 +146,9 @@ fun VideoPlayer(
             }
     ) {
         var showAiDialog by remember { mutableStateOf(false) } // 控制AI消息对话框的显示
+        var showAlarmDialog by remember { mutableStateOf(false) }
         val chatViewModel: ChatViewModel = viewModel()
+        val todoViewModel : TodoViewModel = viewModel()
         AndroidView(
             factory = { context ->
                 StyledPlayerView(context).apply {
@@ -167,13 +172,25 @@ fun VideoPlayer(
                         .fillMaxWidth(1f) // 设置弹窗宽度为屏幕宽度的90%
                         .fillMaxHeight(0.9f) // 设置弹窗高度为屏幕高度的80%
                 ) {
-                    // 嵌套您的 ChatPage Composable
-                    ChatPage(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxSize(),
-                        chatViewModel
-                    )
+                    NewChatPage(chatViewModel)
+                }
+            }
+        }
+        if(showAlarmDialog){
+            Dialog(
+                onDismissRequest = {
+                    showAlarmDialog = false
+                }
+            ) {
+                // 使用 Surface 来设置背景颜色和圆角
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.background, // 设置背景颜色
+                    modifier = Modifier
+                        .fillMaxWidth(1f) // 设置弹窗宽度为屏幕宽度的90%
+                        .fillMaxHeight(0.9f) // 设置弹窗高度为屏幕高度的80%
+                ) {
+                    TodoListPage(todoViewModel)
                 }
             }
         }
@@ -212,6 +229,11 @@ fun VideoPlayer(
                 modifier = Modifier.align(Alignment.BottomStart),
                 onAI = {
                     showAiDialog = true
+                    exoPlayer.playWhenReady = !exoPlayer.playWhenReady
+                    showControls()
+                },
+                onAlarm = {
+                    showAlarmDialog = true
                     exoPlayer.playWhenReady = !exoPlayer.playWhenReady
                     showControls()
                 }

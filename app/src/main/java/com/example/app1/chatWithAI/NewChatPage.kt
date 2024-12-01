@@ -33,18 +33,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app1.pages.TodoListPage
+import com.example.app1.roomDb.viewModel.TodoViewModel
 
 @SuppressLint("SetJavaScriptEnabled")
 @RequiresApi(35)
 @Composable
 fun NewChatPage(chatViewModel: ChatViewModel){
     var selectedCategory by remember { mutableStateOf("AI") }
-    val categories = listOf("AI", "网络搜索")
+    val categories = listOf("AI", "网络搜索","闹钟")
     var isAI by remember { mutableStateOf(false) }
     var isInternet by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf("") }
     var webView by remember { mutableStateOf<WebView?>(null) }
+    val todoViewModel :TodoViewModel = viewModel()
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -105,6 +110,9 @@ fun NewChatPage(chatViewModel: ChatViewModel){
                             isInternet = !isInternet
                             text = ""
                         }
+                        "闹钟"->{
+                            text = ""
+                        }
                     }
                 },
                 modifier = Modifier.height(56.dp)
@@ -133,6 +141,9 @@ fun NewChatPage(chatViewModel: ChatViewModel){
                     }, update = {
                         webView?.loadUrl("https://www.yandex.com")
                     })
+                }
+                "闹钟"->{
+                 TodoListPage(todoViewModel)
                 }
             }
         }

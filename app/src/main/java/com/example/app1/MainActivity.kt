@@ -1,5 +1,6 @@
 package com.example.app1
 
+import com.example.app1.music.MusicPlayerViewModel
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlarmManager
@@ -15,6 +16,8 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -71,13 +74,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -190,15 +196,12 @@ import com.example.app1.chatWithAI.ChatPage
 import com.example.app1.chatWithAI.ChatViewModel
 import com.example.app1.chatWithAI.NewChatPage
 import com.example.app1.chatWithAI.WebBrowser
-import com.example.app1.chatWithUser.ChatActivity
 import com.example.app1.chatWithUser.UserProfilePage
-import com.example.app1.music.Lyric
 import com.example.app1.music.MusicPlayerScreen
 import com.example.app1.music.MusicScreen
 import com.example.app1.music.SongInfo
 import com.example.app1.music.SongItem
-import com.example.app1.music.fetchLyrics
-import com.example.app1.music.formatTime
+import com.example.app1.music.getSongInfo
 import com.example.app1.music.performSearch
 import com.example.app1.pages.TodoListPage
 import com.example.app1.roomDb.viewModel.TodoViewModel
@@ -213,6 +216,13 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import com.google.gson.Gson
+import com.zegocloud.zimkit.common.ZIMKitRouter
+import com.zegocloud.zimkit.common.enums.ZIMKitConversationType
+import com.zegocloud.zimkit.components.conversation.ui.ZIMKitConversationFragment
+import com.zegocloud.zimkit.services.ZIMKit
+import com.zegocloud.zimkit.services.ZIMKit.connectUser
+import com.zegocloud.zimkit.services.ZIMKitConfig
+import im.zego.zim.enums.ZIMErrorCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -239,6 +249,10 @@ class MainActivity : AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val todoViewModel = ViewModelProvider(this)[TodoViewModel::class.java]
+        val appID = 678584385
+        val appSign="071ecf0af4034066a0a5a330529bc0cd8b4353d6249ce3c37c0f2bd510a01a52"
+        ZIMKit.initWith(application, appID.toLong(),appSign, ZIMKitConfig())
+        ZIMKit.initNotifications()
         setContent {
             App1Theme {
                 val chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
@@ -300,7 +314,7 @@ class MainActivity : AppCompatActivity(){
                 ) {
                     innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        NavHost(navController = navController, startDestination = "start") {
+                        NavHost(navController = navController, startDestination = "start", modifier = Modifier.padding(bottom = 40.dp)) {
                             composable("example"){ getUserName() }
                             composable("start"){ StartScreen(navController) }
                             composable("thumbUpList"){ThumbUpList(navController)}
@@ -379,8 +393,8 @@ class MainActivity : AppCompatActivity(){
                             }//同理
                             composable("demo"){ VideoUrlListScreen() }
                             composable("jsoup") { demo1() }
-                            composable("main") { ChatMainScreen() }
-                            composable("usercard"){ UserProfilePage(currentName) }
+                            composable("main") { ChatCheckScreen()}
+                            composable("usercard"){ UserProfilePage(currentName,navController) }
                             composable("alarm") { alarm() }
                             composable("app") { OpenAppButton() }
                             composable("splash") { GifSplashScreen(navController = navController) }
@@ -418,6 +432,13 @@ class MainActivity : AppCompatActivity(){
                             }
                             composable("selectLogin") { selectLogin(navController) }
                         }
+                        if (showBottomBar) {
+                            BottomPlayerBar(
+                                modifier = Modifier.align(Alignment.BottomCenter).background(
+                                    Color.Transparent
+                                )
+                            )
+                        }
                       }
                     }
                 }
@@ -430,7 +451,77 @@ fun getUserName(){
     val name = getLoggedInUsername(context)
     Text(text = name)
 }
+@Composable
+fun BottomPlayerBar(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(60.dp) // 设置高度
+            .background(Color(0xFFF5F5F5)) // 设置背景颜色
+            .padding(horizontal = 16.dp, vertical = 8.dp),
 
+        contentAlignment = Alignment.CenterStart
+    ) {
+        val context = LocalContext.current
+        val songInfo = getSongInfo(context)
+        var rotation by remember { mutableFloatStateOf(0f) }
+        val viewModel : MusicPlayerViewModel = viewModel()
+        val isPlaying by viewModel.isPlaying.collectAsState()
+        // 每隔16ms更新旋转角度，模拟持续旋转
+        LaunchedEffect(key1 = true) {
+            while (true) {
+                rotation += 1f // 每次递增1度
+                if (rotation >= 360f) {
+                    rotation = 0f // 角度达到360时重置
+                }
+                delay(16) // 每16ms更新一次，形成平滑旋转
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween // 左右分布
+        ) {
+            // 左侧专辑封面和标题
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                        model = songInfo?.coverImageUrl ?: "",
+                        contentDescription = "Album Cover",
+                        modifier = Modifier
+                            .size(40.dp) // 设置封面大小
+                            .clip(CircleShape) // 裁剪为圆形
+                            .graphicsLayer(rotationZ = rotation)
+                    )
+                Spacer(modifier = Modifier.width(8.dp)) // 添加间距
+                Column {
+                    Text(text = songInfo?.name ?: "", fontSize = 16.sp)
+                    Text(text = songInfo?.albumName ?: "", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+            // 右侧播放控制和更多操作
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = {
+                    if (isPlaying) {
+                        viewModel.pause()
+                    } else {
+                        viewModel.play(songInfo?.mp3Url?:"")
+                    }
+                }) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "暂停" else "播放"
+                    )
+                }
+                IconButton(onClick = { /* 更多选项逻辑 */ }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert, // 替换为更多操作图标
+                        contentDescription = "More"
+                    )
+                }
+            }
+        }
+    }
+}
 //隐藏底部导航栏（路由带参数导致匹配不正确）
 fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Boolean {
     if (currentRoute == null) return true
@@ -443,11 +534,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     }
 }
-
-    data class TODoItem(
-    var title:String,
-    var isCompleted: Boolean = false
-)
     data class TabItem(
         val title: String,
         val selectedIcon : ImageVector,
@@ -655,7 +741,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 }
     @Composable
     fun VideoPlayDescription(videoItem: VideoDescription,onPlayVideo: (String, Int) -> Unit){
-
     var clickState1 by remember { mutableStateOf(false) }
     var clickState2 by remember { mutableStateOf(false) }
     var clickState3 by remember { mutableStateOf(false) }
@@ -667,7 +752,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     val videoDocRef = db.collection(videoItem.type).document("${videoItem.name}_${videoItem.year}")
     var count1  by remember { mutableIntStateOf(videoItem.dianzanCounts) }//待存储,问题是会重复累计点赞，解决方案"likedUsers": ["userId1", "userId2"], "collectedUsers": ["userId3", "userId1"]
     var count2  by remember { mutableIntStateOf(videoItem.collectCounts) }
-    val currentname = getLoggedInUsername(context =context)//bug:获取不到当前的用户
+    val currentName = getLoggedInUsername(context =context)
     LaunchedEffect(videoItem) {
             db.collection("videos").document("${videoItem.name}_${videoItem.year}").get()
                 .addOnSuccessListener { document ->
@@ -703,7 +788,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     fun updateFavoriteVideos(videoDocRef: DocumentReference) {
             val userDocRef = FirebaseFirestore.getInstance().collection("users").document(
-               "sakura"
+               currentName
             )
         userDocRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
@@ -714,7 +799,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 if (favoriteVideos.contains(videoDocRef)) {
                     // 如果已收藏，移除该视频
                     val updatedFavorites = favoriteVideos.filterNot { it == videoDocRef }
-
                     // 更新用户文档的 favoriteVideos 字段
                     userDocRef.update("favoriteVideos", updatedFavorites)
                         .addOnSuccessListener {
@@ -726,7 +810,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 } else {
                     // 如果未收藏，添加该视频
                     val updatedFavorites = favoriteVideos + videoDocRef
-
                     // 更新用户文档的 favoriteVideos 字段
                     userDocRef.update("favoriteVideos", updatedFavorites)
                         .addOnSuccessListener {
@@ -743,7 +826,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     fun updateCollectVideos(videoDocRef: DocumentReference) {
             val userDocRef = FirebaseFirestore.getInstance().collection("users").document(
-                "sakura"
+                currentName
             )
         userDocRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
@@ -783,7 +866,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         }
     fun updateChaseVideos(videoDocRef: DocumentReference) {
             val userDocRef = FirebaseFirestore.getInstance().collection("users").document(
-                "sakura"
+                currentName
             )
         userDocRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
@@ -821,7 +904,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             Log.w("Firebase", "Error fetching user data", e)
         }
         }
-
     Box(modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center){
         Column(
@@ -2492,19 +2574,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         fetchWebPageContent(url)
     }
 }
-
-    @Composable
-    fun ChatMainScreen(){
-    val context = LocalContext.current
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Button(onClick = {
-            val intent = Intent(context, ChatActivity::class.java)
-            context.startActivity(intent)
-        }) {
-            Text("开始聊天")
-        }
-    }
-}
     @Composable
     fun demo1() {
     var responseData by remember { mutableStateOf("Loading...") }
@@ -2992,10 +3061,7 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                                             Text(text = "退出登录")
                                         }
                                     }
-
                                 }
-
-
                             }
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 TodoListPage(todoViewModel)
@@ -3185,6 +3251,120 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                         ).show()
                     }
                     hasShownToast = true
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun ChatCheckScreen(){
+        val context = LocalContext.current
+        val userId = getLoggedInUsername(context)
+        val userName = getLoggedInPassword(context)
+        var openConversations by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            connectUser(userId, userName, "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg") { info ->
+                if (info.code == ZIMErrorCode.SUCCESS) {
+                    openConversations = true
+                } else {
+                    Log.e("ChatActivity", "Connect user failed: ${info.message}, code: ${info.code}")
+                }
+            }
+        }
+        if (openConversations) {
+            ConversationsScreen()
+        }
+    }
+    //聊天页面
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun ConversationsScreen(modifier: Modifier = Modifier) {
+        var expanded by remember { mutableStateOf(false) }
+        var showDialog by remember { mutableStateOf(false) }
+        var newUser by remember { mutableStateOf("") }
+        val context = LocalContext.current
+        val fragmentManager = (context as AppCompatActivity).supportFragmentManager
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(title = { Text("Conversations") })
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = { expanded = !expanded }) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                }
+            }
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                val fragment = remember { ZIMKitConversationFragment() }
+                AndroidView(
+                    modifier = modifier.fillMaxSize(),
+                    factory = {
+                        FrameLayout(it).apply {
+                            id = View.generateViewId()
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                        }
+                    },
+                    update = {
+                        fragmentManager.beginTransaction().replace(it.id, fragment).commit()
+                    }
+                )
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(text = "添加聊天") },
+                        onClick = {
+                            expanded = false
+                            showDialog = true
+                        }
+                    )
+                    // 其他菜单项...
+                }
+
+                if (showDialog) {
+                    Dialog(onDismissRequest = { showDialog = false }) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White)
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(text = "请输入要输入的内容")
+                                Spacer(modifier = Modifier.height(5.dp))
+                                TextField(
+                                    value = newUser,
+                                    onValueChange = { newUser = it },
+                                    label = { Text(text = "输入UserId：") },
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = {
+                                        ZIMKitRouter.toMessageActivity(
+                                            context,
+                                            newUser,
+                                            ZIMKitConversationType.ZIMKitConversationTypePeer
+                                        )
+                                        showDialog = false
+                                        newUser = ""
+                                    }
+                                ) {
+                                    Text("确认添加")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -3597,7 +3777,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         Log.w("Firebase", "Error fetching user document", e)
     }
 }
-
     @Composable
     fun MapScreen(){
         var mapView by remember { mutableStateOf<MapView?>(null) }
@@ -3619,7 +3798,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             update = { mapView?.onResume() }
         )
     }
-
     @Composable
     fun selectLogin(navController: NavHostController){
 
@@ -3638,7 +3816,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             }
         }
     }
-
     @Composable
     fun Check(navController: NavHostController){
         TextField(
@@ -3665,10 +3842,9 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
             )
         )
     }
-
     @Composable
     fun ButtonNavigtion(navController: NavHostController, modifier: Modifier = Modifier) {
-
+        val context = LocalContext.current
         NavigationBar(modifier = modifier) {
             NavigationBarItem(
                 icon = {
@@ -3701,8 +3877,8 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
                 },
                 selected = navController.currentBackStackEntry?.destination?.route == "main",
                 onClick = {
+                    if(isUserChatLoggedIn(context = context))
                     navController.navigate("main")
-
                 })
             NavigationBarItem(
                 icon = {
@@ -3758,8 +3934,6 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
 
         }
     }
-
-
     @Composable
     fun GifSplashScreen(navController: NavHostController) {
 
@@ -3796,6 +3970,16 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     editor.putBoolean("isLoggedIn", true) // 标记用户已登录
     editor.apply()
 }
+    fun saveChatLoginInfo(context: Context) {
+    val sharedPreferences = context.getSharedPreferences("UserChatLoginInfo", Context.MODE_PRIVATE)
+    val editor = sharedPreferences.edit()
+    editor.putBoolean("isChatLoggedIn", true) // 标记用户已登录
+    editor.apply()
+}
+    fun isUserChatLoggedIn(context: Context): Boolean {
+    val sharedPreferences = context.getSharedPreferences("UserChatLoginInfo", Context.MODE_PRIVATE)
+    return sharedPreferences.getBoolean("isChatLoggedIn", false)
+}
     //清除登录状态
     fun clearLoginInfo(context: Context) {
     val sharedPreferences = context.getSharedPreferences("UserLoginInfo", Context.MODE_PRIVATE)
@@ -3813,6 +3997,10 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
         val sharedPreferences = context.getSharedPreferences("UserLoginInfo", Context.MODE_PRIVATE)
         return sharedPreferences.getString("username", "") ?: "" // 如果没有用户名，返回空字符串
     }
+    fun getLoggedInPassword(context: Context): String {
+    val sharedPreferences = context.getSharedPreferences("UserLoginInfo", Context.MODE_PRIVATE)
+    return sharedPreferences.getString("password", "") ?: "" // 如果没有用户名，返回空字符串
+}
     //生成随机访客id
     fun generateRandomId(length: Int): String {
         val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

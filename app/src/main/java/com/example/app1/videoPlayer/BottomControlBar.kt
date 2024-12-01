@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AccessAlarm
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -28,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomControlBar(
     isPlaying: Boolean,
@@ -39,7 +39,8 @@ fun BottomControlBar(
     totalDuration: Long,
     onProgressChanged: (Float, Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    onAI: () -> Unit
+    onAI: () -> Unit,
+    onAlarm :() -> Unit
 ) {
     // 状态管理：是否正在拖动进度条
     var isUserDragging by remember { mutableStateOf(false) }
@@ -220,6 +221,16 @@ fun BottomControlBar(
                 Icon(
                     Icons.Filled.Search,
                     contentDescription = "AI",
+                    tint = Color.White,
+                    modifier = Modifier.size(lastNextButtonSize.dp)
+                )
+            }
+            //弹幕
+            Spacer(modifier = Modifier.width((screenHeight / 32).dp))
+            IconButton(onClick =onAlarm, modifier = Modifier.size(pauseButtonSize.dp)) {
+                Icon(
+                    Icons.Filled.AccessAlarm,
+                    contentDescription = "Alarm",
                     tint = Color.White,
                     modifier = Modifier.size(lastNextButtonSize.dp)
                 )

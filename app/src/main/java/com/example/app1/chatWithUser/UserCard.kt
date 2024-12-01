@@ -33,13 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.firestore.FirebaseFirestore
 import com.zegocloud.zimkit.common.ZIMKitRouter
 import com.zegocloud.zimkit.common.enums.ZIMKitConversationType
+import com.zegocloud.zimkit.services.ZIMKit.connectUser
+import im.zego.zim.enums.ZIMErrorCode
 
 @Composable
-fun UserProfilePage(currentName:String) {
+fun UserProfilePage(currentName:String,navController: NavController) {
     val userBio = "躺平"
     val userContact = "111111111111"
     val followersCount = 100
@@ -159,10 +162,6 @@ fun UserProfilePage(currentName:String) {
                 // 编辑按钮
                 TextButton(
                     onClick = {
-                        ZIMKitRouter.toMessageActivity(
-                            context, currentName,
-                            ZIMKitConversationType.ZIMKitConversationTypePeer
-                        )
                         isFollowed = !isFollowed
                         Toast.makeText(
                             context,
@@ -177,8 +176,13 @@ fun UserProfilePage(currentName:String) {
                 TextButton(
                     onClick = {
                         if (isFollowed) {
-                            val intent = Intent(context, ChatActivity::class.java)
-                            context.startActivity(intent)
+                            connectUser(currentName,currentName, imageURL) { info ->
+                                if (info.code == ZIMErrorCode.SUCCESS) {
+                                } else {
+                                    Log.e("ChatActivity", "Connect user failed: ${info.message}, code: ${info.code}")
+                                }
+                            }
+                            navController.navigate("main")
                         } else {
                             Toast.makeText(context, "请先关注", Toast.LENGTH_SHORT).show()
                         }

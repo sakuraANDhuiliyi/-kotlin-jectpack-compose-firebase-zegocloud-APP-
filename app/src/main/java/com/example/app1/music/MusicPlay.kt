@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -193,40 +195,16 @@ fun MusicPlayer(songInfo: SongInfo) {
     }
 
 @Composable
-fun MusicPlayerApp(mp3url: String,lyrics: List<Lyric>?) {
+fun MusicPlayerApp(
+    mp3url: String,
+    lyrics: List<Lyric>?,
+) {
     val context = LocalContext.current
-    var isPlaying by remember { mutableStateOf(false) }
-    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-    var currentTime by remember { mutableFloatStateOf(0f) }
-    var progress by remember { mutableFloatStateOf(0f) } // 当前播放进度
-    val coroutineScope = rememberCoroutineScope()
-
-    // 释放MediaPlayer当Composable被移除时
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer?.release()
-        }
-    }
-
-    // 定时更新进度条
-    LaunchedEffect(mediaPlayer, isPlaying) {
-        while (isPlaying) {
-            mediaPlayer?.let { player ->
-                progress = (player.currentPosition.toFloat() / player.duration.toFloat())
-                currentTime = player.currentPosition / 1000f
-            }
-            delay(100) // 每100ms更新一次进度条
-        }
-    }
-
-    // 当进度条被拖动时，更新播放器的播放进度
-    fun onProgressChanged(value: Float) {
-        mediaPlayer?.let { player ->
-            val newPosition = (player.duration * value).toInt()
-            player.seekTo(newPosition)
-            progress = value
-        }
-    }
+    val viewModel :MusicPlayerViewModel = viewModel()
+    // 收集 ViewModel 中的状态
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val currentTime by viewModel.currentTime.collectAsState()
+    val progress by viewModel.progress.collectAsState()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -246,7 +224,7 @@ fun MusicPlayerApp(mp3url: String,lyrics: List<Lyric>?) {
         Slider(
             value = progress,
             onValueChange = { newProgress ->
-                onProgressChanged(newProgress)
+                viewModel.seekTo(newProgress)
             },
             modifier = Modifier.fillMaxWidth(),
             valueRange = 0f..1f,
@@ -266,52 +244,10 @@ fun MusicPlayerApp(mp3url: String,lyrics: List<Lyric>?) {
                 )
             }
             IconButton(onClick = {
-                if (mp3url.isBlank()) {
-                    Toast.makeText(context, "URL不能为空", Toast.LENGTH_SHORT).show()
-                    return@IconButton
-                }
                 if (isPlaying) {
-                    // 停止播放
-                    mediaPlayer?.stop()
-                    mediaPlayer?.release()
-                    mediaPlayer = null
-                    isPlaying = false
+                    viewModel.pause()
                 } else {
-                    // 开始播放
-                    coroutineScope.launch {
-                        try {
-                            val player = MediaPlayer().apply {
-                                setAudioAttributes(
-                                    AudioAttributes.Builder()
-                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                                        .build()
-                                )
-                                setDataSource(mp3url)
-                                prepareAsync()
-                                setOnPreparedListener {
-                                    start()
-                                    isPlaying = true
-                                }
-                                setOnCompletionListener {
-                                    isPlaying = false
-                                    release()
-                                    mediaPlayer = null
-                                }
-                                setOnErrorListener { _, what, extra ->
-                                    Toast.makeText(context, "播放错误: what=$what, extra=$extra", Toast.LENGTH_SHORT).show()
-                                    isPlaying = false
-                                    release()
-                                    mediaPlayer = null
-                                    true
-                                }
-                            }
-                            mediaPlayer = player
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "无法播放该URL", Toast.LENGTH_SHORT).show()
-                            e.printStackTrace()
-                        }
-                    }
+                    viewModel.play(mp3url)
                 }
             }) {
                 Icon(
@@ -326,7 +262,6 @@ fun MusicPlayerApp(mp3url: String,lyrics: List<Lyric>?) {
                 )
             }
         }
-
     }
 }
 fun getCurrentLyric(lyrics: List<Lyric>, currentTime: Float): String {

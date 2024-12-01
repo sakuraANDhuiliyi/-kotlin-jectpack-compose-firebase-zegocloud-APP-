@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -46,11 +47,13 @@ import java.nio.charset.StandardCharsets
         }
     @Composable
     fun SongItem(song: SongInfo, navController: NavController) {
+        val context = LocalContext.current
         Column(modifier = Modifier.fillMaxWidth().padding(8.dp).clickable {
             val songJson = Gson().toJson(song)
             // URL 编码，确保字符串在 URL 中安全传输
             val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
             // 导航到 MusicPlayerScreen， 并传递序列化的 SongInfo
+            saveSongInfo(context,song)
             navController.navigate("musicPlayer/$encodedSongJson")
         }) {
             Row(
