@@ -250,10 +250,10 @@ class MainActivity : AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val todoViewModel = ViewModelProvider(this)[TodoViewModel::class.java]
-        val appID = 678584385
-        val appSign="071ecf0af4034066a0a5a330529bc0cd8b4353d6249ce3c37c0f2bd510a01a52"
-        ZIMKit.initWith(application, appID.toLong(),appSign, ZIMKitConfig())
-        ZIMKit.initNotifications()
+        // val appID = 678584385 // Removed
+        // val appSign="071ecf0af4034066a0a5a330529bc0cd8b4353d6249ce3c37c0f2bd510a01a52" // Removed
+        // ZIMKit.initWith(application, appID.toLong(),appSign, ZIMKitConfig()) // Removed
+        // ZIMKit.initNotifications() // Removed
         setContent {
             App1Theme {
                 val chatViewModel = ViewModelProvider(this)[ChatViewModel::class.java]
@@ -3344,20 +3344,58 @@ fun shouldShowBottomBar(currentRoute: String?, hiddenRoutes: List<String>): Bool
     fun ChatCheckScreen(){
         val context = LocalContext.current
         val userId = getLoggedInUsername(context)
-        val userName = getLoggedInPassword(context)
+        val userName = getLoggedInUsername(context) // Corrected in previous step
         var openConversations by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) {
-            connectUser(userId, userName, "https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg") { info ->
-                if (info.code == ZIMErrorCode.SUCCESS) {
-                    openConversations = true
-                } else {
-                    Log.e("ChatActivity", "Connect user failed: ${info.message}, code: ${info.code}")
-                }
+        var userAvatarUrl by remember { mutableStateOf("https://c-ssl.duitang.com/uploads/item/201803/19/20180319200326_3HvLA.jpeg") } // Default avatar
+
+        val db = FirebaseFirestore.getInstance()
+
+        LaunchedEffect(userId) {
+            if (userId.isNotEmpty()) {
+                db.collection("users").document(userId).get()
+                    .addOnSuccessListener { document ->
+                        if (document != null && document.exists()) {
+                            val fetchedUrl = document.getString("imageUrl")
+                            if (!fetchedUrl.isNullOrEmpty()) {
+                                userAvatarUrl = fetchedUrl
+                            }
+                        }
+                        // If document doesn't exist or imageUrl is empty, default URL remains set
+                        // Now connect to ZIMKit after attempting to fetch the avatar
+                        ZIMKit.connectUser(userId, userName, userAvatarUrl) { info ->
+                            if (info.code == ZIMErrorCode.SUCCESS) {
+                                openConversations = true
+                                // saveChatLoginInfo(context) // Ensure this is handled if needed
+                            } else {
+                                Log.e("ChatCheckScreen", "ZIMKit Connect user failed: ${info.message}, code: ${info.code}")
+                                Toast.makeText(context, "Chat connection failed: ${info.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e("ChatCheckScreen", "Error fetching user avatar: $exception")
+                        // Connect to ZIMKit with default avatar on failure
+                        ZIMKit.connectUser(userId, userName, userAvatarUrl) { info ->
+                            if (info.code == ZIMErrorCode.SUCCESS) {
+                                openConversations = true
+                                // saveChatLoginInfo(context) // Ensure this is handled if needed
+                            } else {
+                                Log.e("ChatCheckScreen", "ZIMKit Connect user failed (after avatar fetch failure): ${info.message}, code: ${info.code}")
+                                Toast.makeText(context, "Chat connection failed: ${info.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+            } else {
+                // Handle case where userId is empty, perhaps by not attempting connection or using guest credentials
+                Log.d("ChatCheckScreen", "UserId is empty, ZIMKit connection not attempted.")
             }
         }
+
         if (openConversations) {
             ConversationsScreen()
         }
+        // Else: Optionally display a loading indicator or an error message if connection fails
+        // For now, it will just show a blank screen if openConversations is false.
     }
     //聊天页面
     @OptIn(ExperimentalMaterial3Api::class)

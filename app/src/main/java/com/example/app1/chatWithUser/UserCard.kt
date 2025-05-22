@@ -176,13 +176,14 @@ fun UserProfilePage(currentName:String,navController: NavController) {
                 TextButton(
                     onClick = {
                         if (isFollowed) {
-                            connectUser(currentName,currentName, imageURL) { info ->
-                                if (info.code == ZIMErrorCode.SUCCESS) {
-                                } else {
-                                    Log.e("ChatActivity", "Connect user failed: ${info.message}, code: ${info.code}")
-                                }
-                            }
-                            navController.navigate("main")
+                            // connectUser(currentName,currentName, imageURL) { info ->
+                            //     if (info.code == ZIMErrorCode.SUCCESS) {
+                            //     } else {
+                            //         Log.e("ChatActivity", "Connect user failed: ${info.message}, code: ${info.code}")
+                            //     }
+                            // }
+                            // navController.navigate("main") // Removed navigation to main chat list screen
+                            ZIMKitRouter.toMessageActivity(context, currentName, ZIMKitConversationType.ZIMKitConversationTypePeer)
                         } else {
                             Toast.makeText(context, "请先关注", Toast.LENGTH_SHORT).show()
                         }
