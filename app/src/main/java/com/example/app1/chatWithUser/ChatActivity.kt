@@ -192,9 +192,9 @@ class ChatActivity : FragmentActivity() {
         }
     }
     private fun init(){
-        val appID = 678584385
-        val appSign="071ecf0af4034066a0a5a330529bc0cd8b4353d6249ce3c37c0f2bd510a01a52"
-        ZIMKit.initWith(application, appID.toLong(),appSign, ZIMKitConfig())
-        ZIMKit.initNotifications()
+        // val appID = 678584385
+        // val appSign="071ecf0af4034066a0a5a330529bc0cd8b4353d6249ce3c37c0f2bd510a01a52"
+        // ZIMKit.initWith(application, appID.toLong(),appSign, ZIMKitConfig())
+        // ZIMKit.initNotifications()
     }
 }
